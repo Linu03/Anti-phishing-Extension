@@ -1,0 +1,13 @@
+# Documentație locală — nu este versionată
+docs/
+
+# Extension / Node
+extension/node_modules/
+extension/dist/
+
+# Python (viitor backend)
+.venv/
+__pycache__/
+*.pyc
+.env
+.env.*
