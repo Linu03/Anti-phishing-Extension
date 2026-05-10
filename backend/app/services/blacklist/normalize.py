@@ -2,20 +2,25 @@ from urllib.parse import urlparse
 
 
 def normalize_for_lookup(url: str) -> tuple[str, str]:
-    raw = url.strip()
-    if not raw:
-        raise ValueError("Empty URL")
+    text = url.strip()
+    if text == "":
+        raise ValueError("empty url")
 
-    parsed = urlparse(raw if "://" in raw else f"http://{raw}")
+    if "://" not in text:
+        text = "http://" + text
+
+    parsed = urlparse(text)
     scheme = (parsed.scheme or "http").lower()
     if scheme not in ("http", "https"):
-        raise ValueError("Not allowed scheme - only http and https are allowed")
+        raise ValueError("only http and https")
 
     host = (parsed.hostname or "").lower()
-    if not host:
-        raise ValueError("Can't parse host from URL")
+    if host == "":
+        raise ValueError("bad host")
 
     path = parsed.path or "/"
     if path != "/" and path.endswith("/"):
         path = path.rstrip("/")
-    return f"{host}{path}", host
+
+    key = host + path
+    return key, host

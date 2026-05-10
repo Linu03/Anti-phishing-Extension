@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import {
   AlertTriangle,
   ExternalLink,
@@ -6,9 +7,9 @@ import {
   ShieldOff,
   Sparkles,
 } from "lucide-react";
-import { mockAnalysis } from "../lib/mockAnalysis";
+import { loadActiveTabPhishingAnalysis } from "../lib/loadActiveTabAnalysis";
 import { scoreHue, verdictFromScore, verdictLabel } from "../lib/verdict";
-import type { LayerSignal, Verdict } from "../lib/types";
+import type { AnalysisSnapshot, LayerSignal, Verdict } from "../lib/types";
 
 function VerdictIcon({ verdict }: { verdict: Verdict }) {
   if (verdict === "safe") {
@@ -22,7 +23,9 @@ function VerdictIcon({ verdict }: { verdict: Verdict }) {
 
 function ScoreRing({ score }: { score: number }) {
   const hue = scoreHue(score);
-  const pct = Math.min(100, Math.max(0, score));
+  let pct = score;
+  if (pct < 0) pct = 0;
+  if (pct > 100) pct = 100;
   return (
     <div className="relative flex h-28 w-28 items-center justify-center">
       <svg className="absolute h-full w-full -rotate-90" viewBox="0 0 100 100">
@@ -54,7 +57,7 @@ function ScoreRing({ score }: { score: number }) {
           {score}
         </p>
         <p className="text-[10px] font-medium uppercase tracking-widest text-slate-500">
-          scor
+          score
         </p>
       </div>
     </div>
@@ -62,7 +65,10 @@ function ScoreRing({ score }: { score: number }) {
 }
 
 function LayerRow({ layer, max }: { layer: LayerSignal; max: number }) {
-  const width = max > 0 ? Math.round((layer.contribution / max) * 100) : 0;
+  let width = 0;
+  if (max > 0) {
+    width = Math.round((layer.contribution / max) * 100);
+  }
   return (
     <div className="rounded-lg border border-surface-border bg-surface-elevated/60 px-3 py-2.5">
       <div className="flex items-center justify-between gap-2">
@@ -88,9 +94,48 @@ function LayerRow({ layer, max }: { layer: LayerSignal; max: number }) {
 }
 
 export function PopupApp() {
-  const data = mockAnalysis;
-  const verdict = verdictFromScore(data.threatScore);
-  const maxContribution = Math.max(...data.layers.map((l) => l.contribution), 1);
+  const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
+
+  useEffect(() => {
+    let stillMounted = true;
+
+    async function load() {
+      try {
+        const data = await loadActiveTabPhishingAnalysis();
+        if (stillMounted) {
+          setSnapshot(data);
+        }
+      } catch {
+        if (stillMounted) {
+          setSnapshot(null);
+        }
+      }
+    }
+
+    void load();
+
+    return () => {
+      stillMounted = false;
+    };
+  }, []);
+
+  if (snapshot === null) {
+    return (
+      <div className="flex w-[400px] items-center justify-center bg-surface py-16 text-sm text-slate-400">
+        Loading…
+      </div>
+    );
+  }
+
+  const verdict = verdictFromScore(snapshot.threatScore);
+
+  let maxContribution = 1;
+  for (let i = 0; i < snapshot.layers.length; i++) {
+    const c = snapshot.layers[i].contribution;
+    if (c > maxContribution) {
+      maxContribution = c;
+    }
+  }
 
   return (
     <div className="w-[400px] bg-surface pb-4 pt-3">
@@ -102,13 +147,13 @@ export function PopupApp() {
           <h1 className="font-display text-sm font-semibold leading-tight text-white">
             Anti-Phishing Shield
           </h1>
-          <p className="text-[11px] text-slate-500">Analiză multi-strat</p>
+          <p className="text-[11px] text-slate-500">Simple multi-layer view</p>
         </div>
       </header>
 
       <section className="mt-4 px-4">
         <div className="flex gap-4 rounded-xl border border-surface-border bg-surface-elevated/40 p-4 shadow-glow">
-          <ScoreRing score={data.threatScore} />
+          <ScoreRing score={snapshot.threatScore} />
           <div className="flex min-w-0 flex-1 flex-col justify-center gap-2">
             <div className="flex items-center gap-2">
               <VerdictIcon verdict={verdict} />
@@ -116,22 +161,20 @@ export function PopupApp() {
                 {verdictLabel(verdict)}
               </span>
             </div>
-            <p className="truncate text-xs text-slate-400" title={data.pageUrl}>
-              {data.pageUrl}
+            <p className="truncate text-xs text-slate-400" title={snapshot.pageUrl}>
+              {snapshot.pageUrl}
             </p>
-            <p className="text-[11px] text-slate-500">
-              Actualizat: {data.lastChecked}
-            </p>
+            <p className="text-[11px] text-slate-500">Updated: {snapshot.lastChecked}</p>
           </div>
         </div>
       </section>
 
       <section className="mt-4 px-4">
         <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-500">
-          Contribuție straturi
+          Layers
         </h2>
         <ul className="flex flex-col gap-2">
-          {data.layers.map((layer) => (
+          {snapshot.layers.map((layer) => (
             <li key={layer.id}>
               <LayerRow layer={layer} max={maxContribution} />
             </li>
@@ -145,20 +188,19 @@ export function PopupApp() {
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg bg-emerald-500/15 px-3 py-2 text-xs font-semibold text-accent-safe ring-1 ring-emerald-500/30 transition hover:bg-emerald-500/25"
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          Domeniu de încredere
+          Trust domain
         </button>
         <button
           type="button"
           className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-surface-border bg-surface-elevated px-3 py-2 text-xs font-medium text-slate-300 transition hover:border-slate-500 hover:text-white"
         >
           <ExternalLink className="h-3.5 w-3.5" />
-          Raportează
+          Report
         </button>
       </footer>
 
       <p className="mt-3 px-4 text-center text-[10px] leading-relaxed text-slate-600">
-        Date demonstrative. Conectarea la API și tab-ul curent vor înlocui acest
-        ecran.
+        Only OpenPhish is real. Other rows are demo numbers.
       </p>
     </div>
   );

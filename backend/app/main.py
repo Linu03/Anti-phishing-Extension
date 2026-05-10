@@ -21,19 +21,12 @@ async def lifespan(app: FastAPI):
     try:
         await openphish_store.refresh_if_stale(app.state.http_client)
     except Exception as exc:
-        log.warning(
-            "OpenPhish initial refresh failed (will retry on first request): %s",
-            exc,
-        )
+        log.warning("openphish first load failed: %s", exc)
     yield
     await app.state.http_client.aclose()
 
 
-app = FastAPI(
-    title="Anti-phishing API",
-    description="URL checks (blocklists) for the browser extension.",
-    lifespan=lifespan,
-)
+app = FastAPI(title="Anti-phishing API", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,

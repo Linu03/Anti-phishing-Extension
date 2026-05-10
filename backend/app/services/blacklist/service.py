@@ -15,17 +15,21 @@ class BlacklistResult:
     url_normalized: str
     host: str
 
+
 async def check_blacklist(client: httpx.AsyncClient, url: str) -> BlacklistResult:
-    lookup_key, host = normalize_for_lookup(url)
+    normalized_key, host = normalize_for_lookup(url)
+
     await openphish_store.refresh_if_stale(client)
 
     sources: list[str] = []
-    if openphish_store.match(lookup_key, host):
+    if openphish_store.match(normalized_key, host):
         sources.append("openphish")
 
+    listed = len(sources) > 0
+
     return BlacklistResult(
-        listed=len(sources) > 0,
+        listed=listed,
         sources=sources,
-        url_normalized=lookup_key,
+        url_normalized=normalized_key,
         host=host,
     )

@@ -1,14 +1,9 @@
 import type { Verdict } from "./types";
 
 export function verdictLabel(v: Verdict): string {
-  switch (v) {
-    case "safe":
-      return "Scăzut";
-    case "caution":
-      return "Atenție";
-    case "high_risk":
-      return "Risc ridicat";
-  }
+  if (v === "safe") return "Low";
+  if (v === "caution") return "Medium";
+  return "High";
 }
 
 export function verdictFromScore(score: number): Verdict {
