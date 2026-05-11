@@ -11,6 +11,21 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, "popup.html"),
+        background: resolve(__dirname, "src/background/main.ts"),
+        phishingOverlay: resolve(__dirname, "src/content/phishingOverlay.ts"),
+      },
+      output: {
+        entryFileNames(chunkInfo) {
+          if (chunkInfo.name === "background") {
+            return "background.js";
+          }
+          if (chunkInfo.name === "phishingOverlay") {
+            return "phishingOverlay.js";
+          }
+          return "assets/[name]-[hash].js";
+        },
+        chunkFileNames: "assets/[name]-[hash].js",
+        assetFileNames: "assets/[name]-[hash][extname]",
       },
     },
   },

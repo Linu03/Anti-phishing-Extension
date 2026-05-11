@@ -67,11 +67,7 @@ function buildOpenPhishLayer(step: BlocklistStepResult): LayerSignal {
   };
 }
 
-export function composePhishingAnalysis(
-  pageUrl: string,
-  pageTitle: string,
-  blocklistStep: BlocklistStepResult,
-): AnalysisSnapshot {
+export function composePhishingAnalysis(pageUrl: string, pageTitle: string, blocklistStep: BlocklistStepResult): AnalysisSnapshot {
   const openPhishLayer = buildOpenPhishLayer(blocklistStep);
 
   const allLayers: LayerSignal[] = [openPhishLayer];

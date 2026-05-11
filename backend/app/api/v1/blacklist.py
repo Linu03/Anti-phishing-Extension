@@ -20,10 +20,7 @@ class BlacklistCheckResponse(BaseModel):
 
 
 @router.post("/check", response_model=BlacklistCheckResponse)
-async def blacklist_check(
-    body: BlacklistCheckRequest,
-    request: Request,
-) -> BlacklistCheckResponse:
+async def blacklist_check(body: BlacklistCheckRequest, request: Request) -> BlacklistCheckResponse:
     client = request.app.state.http_client
     try:
         result = await check_blacklist(client, body.url)

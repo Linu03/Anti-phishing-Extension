@@ -1,8 +1,5 @@
 import { fetchBlocklistCheck, getApiBaseUrl } from "./blocklistApi";
-import {
-  composePhishingAnalysis,
-  type BlocklistStepResult,
-} from "./composePhishingAnalysis";
+import { composePhishingAnalysis, type BlocklistStepResult } from "./composePhishingAnalysis";
 import type { AnalysisSnapshot } from "./types";
 import { isRestrictedPageUrl } from "./restrictedPageUrl";
 
