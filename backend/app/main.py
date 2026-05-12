@@ -14,12 +14,12 @@ log = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    app.state.http_client = httpx.AsyncClient(
-        timeout=httpx.Timeout(60.0, connect=10.0),
-        follow_redirects=True,
-    )
+
+    app.state.http_client = httpx.AsyncClient(timeout=httpx.Timeout(60.0, connect=10.0), follow_redirects=True,)
+
     try:
         await openphish_store.refresh_if_stale(app.state.http_client)
+        
     except Exception as exc:
         log.warning("openphish first load failed: %s", exc)
     yield

@@ -9,7 +9,7 @@ router = APIRouter(prefix="/blacklist")
 
 
 class BlacklistCheckRequest(BaseModel):
-    url: str = Field(..., min_length=4, max_length=8192)
+    url: str = Field(..., min_length=4, max_length=8192) 
 
 
 class BlacklistCheckResponse(BaseModel):
@@ -26,9 +26,4 @@ async def blacklist_check(body: BlacklistCheckRequest, request: Request) -> Blac
         result = await check_blacklist(client, body.url)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
-    return BlacklistCheckResponse(
-        listed=result.listed,
-        sources=result.sources,
-        url_normalized=result.url_normalized,
-        host=result.host,
-    )
+    return BlacklistCheckResponse(listed=result.listed, sources=result.sources, url_normalized=result.url_normalized, host=result.host, )
