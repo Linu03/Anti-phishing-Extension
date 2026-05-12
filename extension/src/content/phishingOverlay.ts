@@ -1,4 +1,31 @@
 const ROOT_ID = "anti-phishing-shield-overlay-root";
+const FONT_LINK_ID = "afs-aphish-fonts";
+
+const COL = {
+  surface: "#100e0c",
+  elevated: "#1a1714",
+  border: "#342f2a",
+  ink: "#e9e5df",
+  inkMuted: "#a39a90",
+  inkFaint: "#6b6560",
+  accentLine: "#4a6b7c",
+  accentDanger: "#c97d72",
+  safeBg: "#13251c",
+  safeBorder: "#1f3d2e",
+  safeText: "#8fb89a",
+} as const;
+
+function ensureThemeFonts(): void {
+  if (document.getElementById(FONT_LINK_ID)) {
+    return;
+  }
+  const link = document.createElement("link");
+  link.id = FONT_LINK_ID;
+  link.rel = "stylesheet";
+  link.href =
+    "https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap";
+  document.head.appendChild(link);
+}
 
 function removeOverlay(): void {
   const old = document.getElementById(ROOT_ID);
@@ -7,71 +34,143 @@ function removeOverlay(): void {
   }
 }
 
+function shieldSvg(): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="${COL.accentLine}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>`;
+}
+
 function buildOverlay(): HTMLDivElement {
+  ensureThemeFonts();
+
   const root = document.createElement("div");
   root.id = ROOT_ID;
   root.setAttribute("role", "alertdialog");
   root.setAttribute("aria-modal", "true");
 
-  root.style.boxSizing = "border-box";
-  root.style.position = "fixed";
-  root.style.inset = "0";
-  root.style.zIndex = "2147483647";
-  root.style.background = "rgba(15, 23, 42, 0.92)";
-  root.style.color = "#f8fafc";
-  root.style.fontFamily = "system-ui, -apple-system, Segoe UI, Roboto, sans-serif";
-  root.style.display = "flex";
-  root.style.alignItems = "center";
-  root.style.justifyContent = "center";
-  root.style.padding = "24px";
+  Object.assign(root.style, {
+    boxSizing: "border-box",
+    position: "fixed",
+    inset: "0",
+    zIndex: "2147483647",
+    background: "rgba(16, 14, 12, 0.94)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "16px",
+    fontFamily: '"Source Sans 3", sans-serif',
+    color: COL.ink,
+  } as CSSStyleDeclaration);
 
   const card = document.createElement("div");
-  card.style.maxWidth = "520px";
-  card.style.width = "100%";
-  card.style.borderRadius = "16px";
-  card.style.padding = "24px";
-  card.style.background = "#0f172a";
-  card.style.border = "1px solid #f87171";
-  card.style.boxShadow = "0 24px 80px rgba(185, 69, 69, 0.45)";
+  Object.assign(card.style, {
+    width: "100%",
+    maxWidth: "360px",
+    borderRadius: "6px",
+    border: `1px solid ${COL.border}`,
+    background: COL.surface,
+    boxShadow: "0 8px 32px rgba(0,0,0,0.45)",
+    overflow: "hidden",
+  } as CSSStyleDeclaration);
 
-  const title = document.createElement("h1");
-  title.textContent = "High-risk site warning";
-  title.style.margin = "0 0 12px 0";
-  title.style.fontSize = "22px";
-  title.style.lineHeight = "1.2";
+  const head = document.createElement("div");
+  Object.assign(head.style, {
+    display: "flex",
+    alignItems: "center",
+    gap: "10px",
+    padding: "12px 14px",
+    borderBottom: `1px solid ${COL.border}`,
+    background: "rgba(26, 23, 20, 0.6)",
+  } as CSSStyleDeclaration);
+
+  const iconWrap = document.createElement("div");
+  Object.assign(iconWrap.style, {
+    flexShrink: "0",
+    width: "32px",
+    height: "32px",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: "4px",
+    border: `1px solid ${COL.border}`,
+    background: COL.surface,
+  } as CSSStyleDeclaration);
+  iconWrap.innerHTML = shieldSvg();
+
+  const headText = document.createElement("div");
+  headText.style.minWidth = "0";
+  const h1 = document.createElement("h1");
+  h1.textContent = "Anti-Phishing Shield";
+  Object.assign(h1.style, {
+    margin: "0",
+    fontFamily: '"Fraunces", Georgia, serif',
+    fontSize: "16px",
+    fontWeight: "600",
+    lineHeight: "1.25",
+    color: COL.ink,
+  } as CSSStyleDeclaration);
+  const sub = document.createElement("p");
+  sub.textContent = "Blocklist match";
+  Object.assign(sub.style, {
+    margin: "4px 0 0 0",
+    fontSize: "11px",
+    color: COL.inkMuted,
+    fontWeight: "400",
+  } as CSSStyleDeclaration);
+  headText.appendChild(h1);
+  headText.appendChild(sub);
+
+  head.appendChild(iconWrap);
+  head.appendChild(headText);
+
+  const body = document.createElement("div");
+  body.style.padding = "12px 14px 14px";
 
   const p1 = document.createElement("p");
-  p1.textContent = "This URL is on the OpenPhish blocklist. Very strong phishing signal.";
-  p1.style.margin = "0 0 12px 0";
-  p1.style.fontSize = "15px";
-  p1.style.lineHeight = "1.5";
-  p1.style.color = "#e2e8f0";
+  p1.textContent =
+    "This URL matches your extension blocklist. Treat it as high risk unless you fully trust it.";
+  Object.assign(p1.style, {
+    margin: "0 0 10px 0",
+    fontSize: "13px",
+    lineHeight: "1.55",
+    color: COL.inkMuted,
+  } as CSSStyleDeclaration);
 
   const p2 = document.createElement("p");
-  p2.textContent = `Page: ${window.location.href}`;
-  p2.style.margin = "0 0 20px 0";
-  p2.style.fontSize = "13px";
-  p2.style.wordBreak = "break-all";
-  p2.style.color = "#94a3b8";
+  p2.textContent = window.location.href;
+  Object.assign(p2.style, {
+    margin: "0 0 14px 0",
+    fontSize: "11px",
+    lineHeight: "1.45",
+    wordBreak: "break-all",
+    color: COL.inkFaint,
+  } as CSSStyleDeclaration);
 
   const row = document.createElement("div");
-  row.style.display = "flex";
-  row.style.flexWrap = "wrap";
-  row.style.gap = "12px";
+  Object.assign(row.style, {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: "8px",
+    paddingTop: "10px",
+    borderTop: `1px solid ${COL.border}`,
+  } as CSSStyleDeclaration);
+
+  const btnBase: Partial<CSSStyleDeclaration> = {
+    cursor: "pointer",
+    borderRadius: "6px",
+    padding: "8px 12px",
+    fontFamily: '"Source Sans 3", sans-serif',
+    fontSize: "12px",
+    fontWeight: "600",
+    flex: "1 1 120px",
+  };
 
   const backBtn = document.createElement("button");
   backBtn.type = "button";
   backBtn.textContent = "Go back";
-  backBtn.style.flex = "1 1 160px";
-  backBtn.style.cursor = "pointer";
-  backBtn.style.borderRadius = "10px";
-  backBtn.style.border = "none";
-  backBtn.style.padding = "12px 14px";
-  backBtn.style.fontWeight = "700";
-  backBtn.style.fontSize = "14px";
-  backBtn.style.background = "#22c55e";
-  backBtn.style.color = "#052e16";
-
+  Object.assign(backBtn.style, btnBase, {
+    border: `1px solid ${COL.safeBorder}`,
+    background: COL.safeBg,
+    color: COL.safeText,
+  } as CSSStyleDeclaration);
   backBtn.addEventListener("click", () => {
     removeOverlay();
     window.history.back();
@@ -80,18 +179,15 @@ function buildOverlay(): HTMLDivElement {
   const continueBtn = document.createElement("button");
   continueBtn.type = "button";
   continueBtn.textContent = "Continue anyway";
-  continueBtn.style.flex = "1 1 200px";
-  continueBtn.style.cursor = "pointer";
-  continueBtn.style.borderRadius = "10px";
-  continueBtn.style.border = "1px solid #64748b";
-  continueBtn.style.padding = "12px 14px";
-  continueBtn.style.fontWeight = "700";
-  continueBtn.style.fontSize = "14px";
-  continueBtn.style.background = "transparent";
-  continueBtn.style.color = "#e2e8f0";
-
+  Object.assign(continueBtn.style, btnBase, {
+    border: `1px solid ${COL.border}`,
+    background: "transparent",
+    color: COL.ink,
+  } as CSSStyleDeclaration);
   continueBtn.addEventListener("click", () => {
-    const ok = window.confirm("Are you sure? This URL is on a phishing blocklist. Only continue if you fully trust it.");
+    const ok = window.confirm(
+      "This URL is on your blocklist. Only continue if you fully trust it.",
+    );
     if (ok) {
       removeOverlay();
     }
@@ -100,10 +196,12 @@ function buildOverlay(): HTMLDivElement {
   row.appendChild(backBtn);
   row.appendChild(continueBtn);
 
-  card.appendChild(title);
-  card.appendChild(p1);
-  card.appendChild(p2);
-  card.appendChild(row);
+  body.appendChild(p1);
+  body.appendChild(p2);
+  body.appendChild(row);
+
+  card.appendChild(head);
+  card.appendChild(body);
   root.appendChild(card);
 
   return root;

@@ -4,24 +4,30 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ["DM Sans", "system-ui", "sans-serif"],
-        display: ["Outfit", "system-ui", "sans-serif"],
+        sans: ["Source Sans 3", "sans-serif"],
+        serif: ["Fraunces", "Georgia", "serif"],
       },
       colors: {
         surface: {
-          DEFAULT: "#0f1419",
-          elevated: "#161d27",
-          border: "#243044",
+          DEFAULT: "#100e0c",
+          elevated: "#1a1714",
+          paper: "#221f1b",
+          border: "#342f2a",
+        },
+        ink: {
+          DEFAULT: "#e9e5df",
+          muted: "#a39a90",
+          faint: "#6b6560",
         },
         accent: {
-          safe: "#34d399",
-          warn: "#fbbf24",
-          danger: "#f87171",
-          info: "#38bdf8",
+          safe: "#8fb89a",
+          warn: "#d4a574",
+          danger: "#c97d72",
+          line: "#4a6b7c",
         },
       },
-      boxShadow: {
-        glow: "0 0 40px -10px rgba(56, 189, 248, 0.35)",
+      letterSpacing: {
+        editorial: "0.22em",
       },
     },
   },
