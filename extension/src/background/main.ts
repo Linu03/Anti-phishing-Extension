@@ -1,10 +1,83 @@
-import { fetchBlocklistCheck, getApiBaseUrl } from "./api";
-import { shouldSkipBlocklistCheck } from "./urlAllow";
+import { fetchBlocklistCheck, getApiBaseUrl } from "../lib/blocklistApi";
+import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../lib/personalBlocklist";
+import { isRestrictedPageUrl } from "../lib/restrictedPageUrl";
+
+const MSG_GO_BACK = "AFS_GO_BACK";
+const MSG_REMOVE_PERSONAL = "AFS_REMOVE_PERSONAL";
 
 const warnedUrlByTabId = new Map<number, string>();
 
+async function leaveBlockedPage(tabId: number): Promise<void> {
+  try {
+    await chrome.tabs.update(tabId, { url: "chrome://newtab" });
+  } catch {
+    try {
+      await chrome.tabs.update(tabId, { url: "about:blank" });
+    } catch {
+      // nimic
+    }
+  }
+}
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === MSG_REMOVE_PERSONAL) {
+    const tabId = sender.tab?.id;
+    const url = sender.tab?.url;
+    if (tabId === undefined || url === undefined) {
+      sendResponse({ removed: false });
+      return false;
+    }
+    void (async () => {
+      let blocked = false;
+      try {
+        blocked = await isUrlPersonallyBlocked(url);
+      } catch {
+        sendResponse({ removed: false });
+        return;
+      }
+      if (!blocked) {
+        sendResponse({ removed: false });
+        return;
+      }
+      try {
+        await removePersonalBlock(url);
+        warnedUrlByTabId.delete(tabId);
+        sendResponse({ removed: true });
+      } catch {
+        sendResponse({ removed: false });
+      }
+    })();
+    return true;
+  }
+
+  if (msg?.type !== MSG_GO_BACK) {
+    return false;
+  }
+  const tabId = sender.tab?.id;
+  if (tabId === undefined) {
+    sendResponse({ ok: false });
+    return false;
+  }
+
+  void (async () => {
+    try {
+      await leaveBlockedPage(tabId);
+      sendResponse({ ok: true });
+    } catch {
+      sendResponse({ ok: false });
+    }
+  })();
+  return true;
+});
+
 chrome.tabs.onRemoved.addListener((tabId) => {
   warnedUrlByTabId.delete(tabId);
+});
+
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status === "loading") {
+    warnedUrlByTabId.delete(tabId);
+  }
 });
 
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
@@ -17,7 +90,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     return;
   }
 
-  if (shouldSkipBlocklistCheck(pageUrl)) {
+  if (isRestrictedPageUrl(pageUrl)) {
     return;
   }
 
@@ -29,18 +102,33 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 });
 
 async function maybeShowWarningForTab(tabId: number, pageUrl: string) {
-  const alreadyWarnedForUrl = warnedUrlByTabId.get(tabId);
-  if (alreadyWarnedForUrl === pageUrl) {
+  const pageKey = normalizeUrlForPersonalBlock(pageUrl);
+  if (pageKey === "") {
     return;
   }
 
-  let listed = false;
-  try {
-    const apiBaseUrl = getApiBaseUrl();
-    const result = await fetchBlocklistCheck(apiBaseUrl, pageUrl);
-    listed = result.listed === true;
-  } catch {
+  const alreadyWarnedForUrl = warnedUrlByTabId.get(tabId);
+  if (alreadyWarnedForUrl === pageKey) {
     return;
+  }
+
+  let personalListed = false;
+  try {
+    personalListed = await isUrlPersonallyBlocked(pageUrl);
+  } catch {
+    personalListed = false;
+  }
+
+  let listed = personalListed;
+
+  if (!listed) {
+    try {
+      const apiBaseUrl = getApiBaseUrl();
+      const result = await fetchBlocklistCheck(apiBaseUrl, pageUrl);
+      listed = result.listed === true;
+    } catch {
+      return;
+    }
   }
 
   if (!listed) {
@@ -54,13 +142,26 @@ async function maybeShowWarningForTab(tabId: number, pageUrl: string) {
     return;
   }
 
-  if (latest.url !== pageUrl) {
+  const latestUrl = latest.url;
+  if (!latestUrl) {
     return;
   }
 
-  warnedUrlByTabId.set(tabId, pageUrl);
+  const latestKey = normalizeUrlForPersonalBlock(latestUrl);
+  if (latestKey !== pageKey) {
+    return;
+  }
+
+  warnedUrlByTabId.set(tabId, pageKey);
 
   try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      func: (isPersonal: boolean) => {
+        (globalThis as unknown as { __AFS_PERSONAL?: boolean }).__AFS_PERSONAL = isPersonal;
+      },
+      args: [personalListed],
+    });
     await chrome.scripting.executeScript({
       target: { tabId },
       files: ["phishingOverlay.js"],

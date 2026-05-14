@@ -9,19 +9,23 @@ export type BlocklistStepResult =
   | { status: "skipped"; reason: string }
   | { status: "failed"; errorMessage: string };
 
-function buildOpenPhishLayer(step: BlocklistStepResult): LayerSignal {
+function buildBlocklistLayer(step: BlocklistStepResult): LayerSignal {
   if (step.status === "listed") {
+    const src =
+      step.sources.length > 0
+        ? ` Sources: ${step.sources.join(", ")}.`
+        : "";
     return {
-      id: "openphish",
+      id: "blocklist",
       label: "Blocklist",
       contribution: POINTS_IF_ON_BLOCKLIST,
-      detail: "This URL matches the blocklist.",
+      detail: `This URL matches the blocklist.${src}`,
     };
   }
 
   if (step.status === "clear") {
     return {
-      id: "openphish",
+      id: "blocklist",
       label: "Blocklist",
       contribution: 0,
       detail: "No blocklist match.",
@@ -30,7 +34,7 @@ function buildOpenPhishLayer(step: BlocklistStepResult): LayerSignal {
 
   if (step.status === "skipped") {
     return {
-      id: "openphish",
+      id: "blocklist",
       label: "Blocklist",
       contribution: 0,
       detail: step.reason,
@@ -38,7 +42,7 @@ function buildOpenPhishLayer(step: BlocklistStepResult): LayerSignal {
   }
 
   return {
-    id: "openphish",
+    id: "blocklist",
     label: "Blocklist",
     contribution: 0,
     detail: `Could not check: ${step.errorMessage}`,
@@ -46,13 +50,10 @@ function buildOpenPhishLayer(step: BlocklistStepResult): LayerSignal {
 }
 
 export function composePhishingAnalysis(pageUrl: string, pageTitle: string, blocklistStep: BlocklistStepResult): AnalysisSnapshot {
-  const blocklistLayer = buildOpenPhishLayer(blocklistStep);
+  const blocklistLayer = buildBlocklistLayer(blocklistStep);
   const layers: LayerSignal[] = [blocklistLayer];
 
-  let threatScore = blocklistLayer.contribution;
-  if (threatScore > 100) {
-    threatScore = 100;
-  }
+  const threatScore = blocklistLayer.contribution;
 
   const timeText = new Date().toLocaleString("en-GB");
 

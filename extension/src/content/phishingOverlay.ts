@@ -1,15 +1,21 @@
+void (() => {
+  const g = globalThis as unknown as { __AFS_PERSONAL?: boolean };
+  const showRemoveFromBlocklist = g.__AFS_PERSONAL === true;
+  delete g.__AFS_PERSONAL;
+
 const ROOT_ID = "anti-phishing-shield-overlay-root";
 const FONT_LINK_ID = "afs-aphish-fonts";
 
+const MSG_GO_BACK = "AFS_GO_BACK";
+const MSG_REMOVE_PERSONAL = "AFS_REMOVE_PERSONAL";
+
 const COL = {
   surface: "#100e0c",
-  elevated: "#1a1714",
   border: "#342f2a",
   ink: "#e9e5df",
   inkMuted: "#a39a90",
   inkFaint: "#6b6560",
   accentLine: "#4a6b7c",
-  accentDanger: "#c97d72",
   safeBg: "#13251c",
   safeBorder: "#1f3d2e",
   safeText: "#8fb89a",
@@ -156,11 +162,12 @@ function buildOverlay(): HTMLDivElement {
   const btnBase: Partial<CSSStyleDeclaration> = {
     cursor: "pointer",
     borderRadius: "6px",
-    padding: "8px 12px",
+    padding: "8px 10px",
     fontFamily: '"Source Sans 3", sans-serif',
-    fontSize: "12px",
+    fontSize: "11px",
     fontWeight: "600",
-    flex: "1 1 120px",
+    flex: "1 1 88px",
+    minWidth: "0",
   };
 
   const backBtn = document.createElement("button");
@@ -173,7 +180,9 @@ function buildOverlay(): HTMLDivElement {
   } as CSSStyleDeclaration);
   backBtn.addEventListener("click", () => {
     removeOverlay();
-    window.history.back();
+    chrome.runtime.sendMessage({ type: MSG_GO_BACK }, () => {
+      void chrome.runtime.lastError;
+    });
   });
 
   const continueBtn = document.createElement("button");
@@ -194,6 +203,28 @@ function buildOverlay(): HTMLDivElement {
   });
 
   row.appendChild(backBtn);
+  if (showRemoveFromBlocklist) {
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.textContent = "Remove from my blocklist";
+    Object.assign(removeBtn.style, btnBase, {
+      border: `1px solid ${COL.border}`,
+      background: "transparent",
+      color: COL.ink,
+    } as CSSStyleDeclaration);
+    removeBtn.addEventListener("click", () => {
+      chrome.runtime.sendMessage({ type: MSG_REMOVE_PERSONAL }, (res) => {
+        void chrome.runtime.lastError;
+        const okRemove = res && typeof res === "object" && "removed" in res && (res as { removed: boolean }).removed === true;
+        if (okRemove) {
+          removeOverlay();
+        } else {
+          window.alert("This warning is from the public blocklist, not your list.");
+        }
+      });
+    });
+    row.appendChild(removeBtn);
+  }
   row.appendChild(continueBtn);
 
   body.appendChild(p1);
@@ -216,3 +247,4 @@ function showOverlayIfNeeded(): void {
 }
 
 showOverlayIfNeeded();
+})();
