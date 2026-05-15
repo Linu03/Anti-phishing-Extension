@@ -1,3 +1,5 @@
+import { buildWhitelistLayer } from "../layers/whitelist/layer";
+import type { WhitelistStepResult } from "../layers/whitelist/types";
 import type { AnalysisSnapshot, LayerSignal } from "./types";
 import { verdictFromScore } from "./verdict";
 
@@ -49,11 +51,31 @@ function buildBlocklistLayer(step: BlocklistStepResult): LayerSignal {
   };
 }
 
-export function composePhishingAnalysis(pageUrl: string, pageTitle: string, blocklistStep: BlocklistStepResult): AnalysisSnapshot {
-  const blocklistLayer = buildBlocklistLayer(blocklistStep);
-  const layers: LayerSignal[] = [blocklistLayer];
+function sumLayerContributions(layers: LayerSignal[]): number {
+  let total = 0;
+  for (let i = 0; i < layers.length; i++) {
+    total = total + layers[i].contribution;
+  }
+  if (total < 0) {
+    total = 0;
+  }
+  if (total > 100) {
+    total = 100;
+  }
+  return total;
+}
 
-  const threatScore = blocklistLayer.contribution;
+export function composePhishingAnalysis(
+  pageUrl: string,
+  pageTitle: string,
+  blocklistStep: BlocklistStepResult,
+  whitelistStep: WhitelistStepResult,
+): AnalysisSnapshot {
+  const blocklistLayer = buildBlocklistLayer(blocklistStep);
+  const whitelistLayer = buildWhitelistLayer(whitelistStep);
+  const layers: LayerSignal[] = [blocklistLayer, whitelistLayer];
+
+  const threatScore = sumLayerContributions(layers);
 
   const timeText = new Date().toLocaleString("en-GB");
 

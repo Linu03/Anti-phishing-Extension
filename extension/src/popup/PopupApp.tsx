@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { AlertTriangle, ListPlus, Shield, ShieldCheck, ShieldOff } from "lucide-react";
+import { AlertTriangle, ListPlus, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
+import { addWhitelist, isUrlWhitelisted, removeWhitelist } from "../layers/whitelist/storage";
 import { loadActiveTabPhishingAnalysis } from "../lib/loadActiveTabAnalysis";
 import { addPersonalBlock, isUrlPersonallyBlocked } from "../lib/personalBlocklist";
 import { isRestrictedPageUrl } from "../lib/restrictedPageUrl";
@@ -72,9 +73,13 @@ function LayerCard({ layer }: { layer: LayerSignal }) {
         <p className="font-serif text-sm font-semibold text-ink">{layer.label}</p>
         {layer.contribution > 0 ? (
           <span className="shrink-0 font-sans text-xs font-medium text-accent-danger">+{layer.contribution}</span>
-        ) : (
+        ) : null}
+        {layer.contribution < 0 ? (
+          <span className="shrink-0 font-sans text-xs font-medium text-accent-safe">{layer.contribution}</span>
+        ) : null}
+        {layer.contribution === 0 ? (
           <span className="shrink-0 font-sans text-xs text-ink-muted">0</span>
-        )}
+        ) : null}
       </div>
       <p className="mt-1.5 line-clamp-3 font-sans text-xs leading-snug text-ink-muted">{layer.detail}</p>
     </div>
@@ -84,8 +89,11 @@ function LayerCard({ layer }: { layer: LayerSignal }) {
 export function PopupApp() {
   const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
   const [onPersonalList, setOnPersonalList] = useState(false);
+  const [onWhitelist, setOnWhitelist] = useState(false);
   const [personalBusy, setPersonalBusy] = useState(false);
+  const [whitelistBusy, setWhitelistBusy] = useState(false);
   const [personalHint, setPersonalHint] = useState<string | null>(null);
+  const [whitelistHint, setWhitelistHint] = useState<string | null>(null);
 
   useEffect(() => {
     let stillMounted = true;
@@ -117,31 +125,99 @@ export function PopupApp() {
     const pageUrl = snapshot.pageUrl;
     let cancelled = false;
 
-    async function checkPersonal() {
+    async function checkLists() {
       if (isRestrictedPageUrl(pageUrl)) {
         if (!cancelled) {
           setOnPersonalList(false);
+          setOnWhitelist(false);
         }
         return;
       }
       try {
-        const yes = await isUrlPersonallyBlocked(pageUrl);
+        const blocked = await isUrlPersonallyBlocked(pageUrl);
+        const trusted = await isUrlWhitelisted(pageUrl);
         if (!cancelled) {
-          setOnPersonalList(yes);
+          setOnPersonalList(blocked);
+          setOnWhitelist(trusted);
         }
       } catch {
         if (!cancelled) {
           setOnPersonalList(false);
+          setOnWhitelist(false);
         }
       }
     }
 
-    void checkPersonal();
+    void checkLists();
 
     return () => {
       cancelled = true;
     };
   }, [snapshot]);
+
+  async function handleTrustCurrentSite() {
+    setWhitelistHint(null);
+    setWhitelistBusy(true);
+    try {
+      const tabList = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabList[0];
+      let url = "";
+      if (tab && tab.url) {
+        url = tab.url.trim();
+      }
+      if (url === "" || isRestrictedPageUrl(url)) {
+        setWhitelistHint("This tab cannot be added (not a normal web page).");
+        return;
+      }
+      if (await isUrlPersonallyBlocked(url)) {
+        setWhitelistHint("Remove from blocklist first.");
+        return;
+      }
+      if (await isUrlWhitelisted(url)) {
+        setWhitelistHint("Already on your trusted list.");
+        setOnWhitelist(true);
+        return;
+      }
+      const ok = await addWhitelist(url);
+      if (!ok) {
+        setWhitelistHint("Could not add (maybe on blocklist).");
+        return;
+      }
+      setOnWhitelist(true);
+      setWhitelistHint("Saved. This host is on your trusted list.");
+      const fresh = await loadActiveTabPhishingAnalysis();
+      setSnapshot(fresh);
+    } catch {
+      setWhitelistHint("Could not save. Try again.");
+    } finally {
+      setWhitelistBusy(false);
+    }
+  }
+
+  async function handleRemoveTrustCurrentSite() {
+    setWhitelistHint(null);
+    setWhitelistBusy(true);
+    try {
+      const tabList = await chrome.tabs.query({ active: true, currentWindow: true });
+      const tab = tabList[0];
+      let url = "";
+      if (tab && tab.url) {
+        url = tab.url.trim();
+      }
+      if (url === "" || isRestrictedPageUrl(url)) {
+        return;
+      }
+      await removeWhitelist(url);
+      setOnWhitelist(false);
+      setWhitelistHint("Removed from trusted list.");
+      const fresh = await loadActiveTabPhishingAnalysis();
+      setSnapshot(fresh);
+    } catch {
+      setWhitelistHint("Could not remove. Try again.");
+    } finally {
+      setWhitelistBusy(false);
+    }
+  }
 
   async function handleAddCurrentSiteToPersonalList() {
     setPersonalHint(null);
@@ -157,12 +233,20 @@ export function PopupApp() {
         setPersonalHint("This tab cannot be added (not a normal web page).");
         return;
       }
+      if (await isUrlWhitelisted(url)) {
+        setPersonalHint("Remove from trusted list first.");
+        return;
+      }
       if (await isUrlPersonallyBlocked(url)) {
-        setPersonalHint("Already on your list.");
+        setPersonalHint("Already on your blocklist.");
         setOnPersonalList(true);
         return;
       }
-      await addPersonalBlock(url);
+      const ok = await addPersonalBlock(url);
+      if (!ok) {
+        setPersonalHint("Could not add.");
+        return;
+      }
       setOnPersonalList(true);
       setPersonalHint("Saved. Reload the tab — the whole site host is blocked.");
     } catch {
@@ -182,10 +266,12 @@ export function PopupApp() {
   }
 
   const verdict = verdictFromScore(snapshot.threatScore);
-  const layer = snapshot.layers[0];
-  const showPersonalBlockSection =
-    !onPersonalList && !isRestrictedPageUrl(snapshot.pageUrl);
+  const pageOk = !isRestrictedPageUrl(snapshot.pageUrl);
+  const showPersonalBlockSection = pageOk && !onPersonalList && !onWhitelist;
+  const showTrustSection = pageOk && !onWhitelist && !onPersonalList;
+  const showRemoveTrustSection = pageOk && onWhitelist;
   const personalBlockDisabled = personalBusy;
+  const whitelistDisabled = whitelistBusy;
 
   return (
     <div className="w-[360px] border border-surface-border bg-surface shadow-sm">
@@ -218,10 +304,48 @@ export function PopupApp() {
           <span className="font-sans text-[10px] text-ink-faint">{snapshot.lastChecked}</span>
         </div>
 
-        {layer ? <LayerCard layer={layer} /> : null}
+        {snapshot.layers.map((layer) => (
+          <LayerCard key={layer.id} layer={layer} />
+        ))}
 
         {personalHint ? (
-          <p className="border-t border-surface-border pt-3 font-sans text-[11px] leading-snug text-ink-muted">{personalHint}</p>
+          <p className="font-sans text-[11px] leading-snug text-ink-muted">{personalHint}</p>
+        ) : null}
+        {whitelistHint ? (
+          <p className="font-sans text-[11px] leading-snug text-ink-muted">{whitelistHint}</p>
+        ) : null}
+
+        {showTrustSection ? (
+          <div className="border-t border-surface-border pt-3">
+            <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
+            <button
+              type="button"
+              disabled={whitelistDisabled}
+              onClick={() => {
+                void handleTrustCurrentSite();
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <ShieldPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+              Trust this site
+            </button>
+          </div>
+        ) : null}
+
+        {showRemoveTrustSection ? (
+          <div className="border-t border-surface-border pt-3">
+            <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
+            <button
+              type="button"
+              disabled={whitelistDisabled}
+              onClick={() => {
+                void handleRemoveTrustCurrentSite();
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 font-sans text-xs font-semibold text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Remove from trusted list
+            </button>
+          </div>
         ) : null}
 
         {showPersonalBlockSection ? (

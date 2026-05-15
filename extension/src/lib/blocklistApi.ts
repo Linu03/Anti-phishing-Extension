@@ -45,3 +45,5 @@ export async function fetchBlocklistCheck(apiBaseUrl: string, pageUrl: string): 
   const data: ServerBlocklistResponse = await response.json();
   return data;
 }
+
+

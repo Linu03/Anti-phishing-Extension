@@ -1,4 +1,7 @@
+import { hostFromInput } from "./urlHost";
+
 const STORAGE_KEY = "personalBlocklistUrls";
+const WHITELIST_STORAGE_KEY = "personalAllowlistHosts";
 
 export function normalizeUrlForPersonalBlock(url: string): string{
   const t = url.trim();
@@ -31,23 +34,23 @@ export function normalizeUrlForPersonalBlock(url: string): string{
   return `${proto}//${authority}${path}${u.search}`;
 }
 
-function hostFromInput(input: string): string{
-  let s = input.trim();
-  if (s === ""){
-    return "";
+async function isHostOnWhitelist(host: string): Promise<boolean> {
+  const data = await chrome.storage.local.get(WHITELIST_STORAGE_KEY);
+  const value = data[WHITELIST_STORAGE_KEY];
+  if (!Array.isArray(value)) {
+    return false;
   }
-  if (!s.includes("://")){
-    s = "https://" + s;
-  }
-  try{
-    const u = new URL(s);
-    if (u.protocol !== "http:" && u.protocol !== "https:"){
-      return "";
+  for (let i = 0; i < value.length; i++) {
+    const item = value[i];
+    if (typeof item !== "string") {
+      continue;
     }
-    return u.hostname.toLowerCase();
-  } catch{
-    return "";
+    const h = hostFromInput(item);
+    if (h === host) {
+      return true;
+    }
   }
+  return false;
 }
 
 async function saveHostList(hosts: string[]): Promise<void>{
@@ -97,21 +100,27 @@ async function getPersonalBlocklist(): Promise<string[]>{
   return hosts;
 }
 
-export async function addPersonalBlock(url: string): Promise<void>{
+/** Returneaza false daca nu s-a putut adauga (ex. e pe whitelist). */
+export async function addPersonalBlock(url: string): Promise<boolean> {
   const host = hostFromInput(url);
-  if (host === ""){
-    return;
+  if (host === "") {
+    return false;
+  }
+
+  if (await isHostOnWhitelist(host)) {
+    return false;
   }
 
   const list = await getPersonalBlocklist();
 
-  for (let i = 0; i < list.length; i++){
-    if (list[i] === host){
-      return;
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === host) {
+      return false;
     }
   }
   list.push(host);
   await saveHostList(list);
+  return true;
 }
 
 export async function removePersonalBlock(url: string): Promise<void>{

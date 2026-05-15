@@ -1,3 +1,4 @@
+import { runWhitelistStep } from "../layers/whitelist/runStep";
 import { fetchBlocklistCheck, getApiBaseUrl } from "./blocklistApi";
 import { composePhishingAnalysis, type BlocklistStepResult } from "./composePhishingAnalysis";
 import type { AnalysisSnapshot } from "./types";
@@ -42,6 +43,7 @@ export async function loadActiveTabPhishingAnalysis(): Promise<AnalysisSnapshot>
     title = currentTab.title;
   }
 
+  const whitelistStep = await runWhitelistStep(url);
   const blocklistStep = await runBlocklistStep(url);
 
   let urlForUi = url.trim();
@@ -49,5 +51,5 @@ export async function loadActiveTabPhishingAnalysis(): Promise<AnalysisSnapshot>
     urlForUi = "(no url)";
   }
 
-  return composePhishingAnalysis(urlForUi, title, blocklistStep);
+  return composePhishingAnalysis(urlForUi, title, blocklistStep, whitelistStep);
 }
