@@ -12,12 +12,19 @@
 html,
 body {
   margin: 0;
+  overflow: hidden;
   background: #100e0c;
   color: #e9e5df;
   font-family: "Source Sans 3", sans-serif;
   -webkit-font-smoothing: antialiased;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar,
+body::-webkit-scrollbar {
+  display: none;
 }
 
 #root {
-  min-height: 100%;
+  overflow: hidden;
 }

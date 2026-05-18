@@ -40,7 +40,7 @@ function ScoreMini({ score }: { score: number }) {
   if (pct > 100) pct = 100;
   return (
     <div className="flex shrink-0 flex-col items-center">
-      <div className="relative h-14 w-14">
+      <div className="relative h-12 w-12">
         <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100" aria-hidden>
           <circle cx="50" cy="50" r="40" fill="none" stroke="#342f2a" strokeWidth="6" />
           <circle
@@ -68,7 +68,7 @@ function ScoreMini({ score }: { score: number }) {
 
 function LayerCard({ layer }: { layer: LayerSignal }) {
   return (
-    <div className="rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2.5">
+    <div className="rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2">
       <div className="flex items-baseline justify-between gap-2">
         <p className="font-serif text-sm font-semibold text-ink">{layer.label}</p>
         {layer.contribution > 0 ? (
@@ -81,7 +81,7 @@ function LayerCard({ layer }: { layer: LayerSignal }) {
           <span className="shrink-0 font-sans text-xs text-ink-muted">0</span>
         ) : null}
       </div>
-      <p className="mt-1.5 line-clamp-3 font-sans text-xs leading-snug text-ink-muted">{layer.detail}</p>
+      <p className="mt-1 line-clamp-2 font-sans text-xs leading-snug text-ink-muted">{layer.detail}</p>
     </div>
   );
 }
@@ -275,7 +275,7 @@ export function PopupApp() {
 
   return (
     <div className="w-[360px] border border-surface-border bg-surface shadow-sm">
-      <div className="border-b border-surface-border bg-surface-elevated/60 px-4 py-3">
+      <div className="border-b border-surface-border bg-surface-elevated/60 px-4 py-2.5">
         <div className="flex items-center gap-2.5">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-surface-border bg-surface">
             <Shield className="h-4 w-4 text-accent-line" strokeWidth={1.5} />
@@ -286,9 +286,9 @@ export function PopupApp() {
         </div>
       </div>
 
-      <div className="space-y-3 px-4 py-3">
+      <div className="space-y-2 px-4 py-2.5">
         <div className="flex gap-3">
-          <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="min-w-0 flex-1 space-y-1">
             <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={snapshot.pageTitle || undefined}>
               {snapshot.pageTitle?.trim() || "Untitled tab"}
             </p>
@@ -299,7 +299,7 @@ export function PopupApp() {
           <ScoreMini score={snapshot.threatScore} />
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-border pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-border pt-2">
           <VerdictBadge verdict={verdict} />
           <span className="font-sans text-[10px] text-ink-faint">{snapshot.lastChecked}</span>
         </div>
@@ -315,16 +315,18 @@ export function PopupApp() {
           <p className="font-sans text-[11px] leading-snug text-ink-muted">{whitelistHint}</p>
         ) : null}
 
+        {showTrustSection || showRemoveTrustSection || showPersonalBlockSection ? (
+          <div className="space-y-2 border-t border-surface-border pt-2">
         {showTrustSection ? (
-          <div className="border-t border-surface-border pt-3">
-            <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
+          <div>
+            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
             <button
               type="button"
               disabled={whitelistDisabled}
               onClick={() => {
                 void handleTrustCurrentSite();
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ShieldPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
               Trust this site
@@ -333,15 +335,15 @@ export function PopupApp() {
         ) : null}
 
         {showRemoveTrustSection ? (
-          <div className="border-t border-surface-border pt-3">
-            <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
+          <div className="pt-1">
+            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
             <button
               type="button"
               disabled={whitelistDisabled}
               onClick={() => {
                 void handleRemoveTrustCurrentSite();
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-900/40 bg-emerald-950/20 px-3 py-2 font-sans text-xs font-semibold text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-900/40 bg-emerald-950/20 px-3 py-1.5 font-sans text-xs font-semibold text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Remove from trusted list
             </button>
@@ -349,19 +351,21 @@ export function PopupApp() {
         ) : null}
 
         {showPersonalBlockSection ? (
-          <div className="border-t border-surface-border pt-3">
-            <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">My blocklist</p>
+          <div className="pt-1">
+            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">My blocklist</p>
             <button
               type="button"
               disabled={personalBlockDisabled}
               onClick={() => {
                 void handleAddCurrentSiteToPersonalList();
               }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
             >
               <ListPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
               Block this site (my list)
             </button>
+          </div>
+        ) : null}
           </div>
         ) : null}
       </div>
