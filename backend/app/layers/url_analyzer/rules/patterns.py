@@ -1,3 +1,4 @@
+import ipaddress
 from urllib.parse import ParseResult
 
 from app.layers.url_analyzer.finding import UrlFinding
@@ -52,7 +53,7 @@ def check_many_subdomains(host: str) -> list[UrlFinding]:
     return findings
 
 
-# Regula 3: @ in URL (parsed vine din url_normalize.parse_http_url)
+# Rule 3: @ in URL (parsed comes from url_normalize.parse_http_url)
 POINTS_AT_IN_URL = 15
 
 
@@ -67,5 +68,28 @@ def check_at_in_url(parsed: ParseResult) -> list[UrlFinding]:
                 detail="URL contains userinfo before @ (common phishing trick).",
             )
         )
+
+    return findings
+
+
+# Rule 4: host is an IP address
+POINTS_IP_HOST = 15
+
+
+def check_ip_host(host: str) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+
+    try:
+        ipaddress.ip_address(host)
+    except ValueError:
+        return findings
+
+    findings.append(
+        UrlFinding(
+            rule="ip_host",
+            points=POINTS_IP_HOST,
+            detail=f"Host is an IP address ({host}), not a domain name.",
+        )
+    )
 
     return findings

@@ -6,6 +6,7 @@ from app.core.url_normalize import lookup_key_from_parsed, parse_http_url
 from app.layers.url_analyzer.finding import UrlFinding
 from app.layers.url_analyzer.rules.patterns import (
     check_at_in_url,
+    check_ip_host,
     check_many_subdomains,
     check_url_too_long,
 )
@@ -27,9 +28,10 @@ def analyze_url(url: str) -> dict:
 
     all_findings: list[UrlFinding] = []
 
-    all_findings.extend(check_url_too_long(url))  # Regula 1
-    all_findings.extend(check_many_subdomains(host))  # Regula 2
-    all_findings.extend(check_at_in_url(parsed))  # Regula 3
+    all_findings.extend(check_url_too_long(url))  # Rule 1
+    all_findings.extend(check_many_subdomains(host))  # Rule 2
+    all_findings.extend(check_at_in_url(parsed))  # Rule 3
+    all_findings.extend(check_ip_host(host))  # Rule 4
 
     score = 0
     for f in all_findings:
