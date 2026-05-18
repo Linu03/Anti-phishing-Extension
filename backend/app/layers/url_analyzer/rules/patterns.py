@@ -93,3 +93,36 @@ def check_ip_host(host: str) -> list[UrlFinding]:
     )
 
     return findings
+
+
+# Rule 5: too many % in path + query
+MIN_PERCENT_SIGNS = 4
+POINTS_SUSPICIOUS_ENCODING = 10
+
+
+def _path_and_query_text(parsed: ParseResult) -> str:
+    path = parsed.path or ""
+    query = parsed.query
+    if query is None or query == "":
+        return path
+    return path + "?" + query
+
+
+def check_suspicious_encoding(parsed: ParseResult) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+    target = _path_and_query_text(parsed)
+    percent_count = target.count("%")
+
+    if percent_count >= MIN_PERCENT_SIGNS:
+        findings.append(
+            UrlFinding(
+                rule="suspicious_encoding",
+                points=POINTS_SUSPICIOUS_ENCODING,
+                detail=(
+                    f"Path or query has {percent_count} percent signs "
+                    f"({MIN_PERCENT_SIGNS} or more is suspicious)."
+                ),
+            )
+        )
+
+    return findings
