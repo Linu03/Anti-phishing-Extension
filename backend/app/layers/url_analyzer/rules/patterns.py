@@ -1,3 +1,5 @@
+from urllib.parse import ParseResult
+
 from app.layers.url_analyzer.finding import UrlFinding
 
 # Rule 1 : URL is too long
@@ -44,6 +46,25 @@ def check_many_subdomains(host: str) -> list[UrlFinding]:
                     f"Host has {subdomain_count} subdomains "
                     f"({MIN_SUBDOMAINS_FOR_FLAG} or more is suspicious)."
                     ),
+            )
+        )
+
+    return findings
+
+
+# Regula 3: @ in URL (parsed vine din url_normalize.parse_http_url)
+POINTS_AT_IN_URL = 15
+
+
+def check_at_in_url(parsed: ParseResult) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+
+    if parsed.username is not None:
+        findings.append(
+            UrlFinding(
+                rule="at_in_url",
+                points=POINTS_AT_IN_URL,
+                detail="URL contains userinfo before @ (common phishing trick).",
             )
         )
 

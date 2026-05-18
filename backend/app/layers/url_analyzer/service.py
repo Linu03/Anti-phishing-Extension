@@ -2,11 +2,15 @@ from __future__ import annotations
 
 from dataclasses import asdict
 
-from app.core.url_normalize import normalize_for_lookup
+from app.core.url_normalize import lookup_key_from_parsed, parse_http_url
 from app.layers.url_analyzer.finding import UrlFinding
-from app.layers.url_analyzer.rules.patterns import check_many_subdomains, check_url_too_long
+from app.layers.url_analyzer.rules.patterns import (
+    check_at_in_url,
+    check_many_subdomains,
+    check_url_too_long,
+)
 
-# Maximum score for this layer (each new rule can increase the total)
+# maximum score for this layer
 MAX_LAYER_SCORE = 50
 
 
@@ -18,13 +22,14 @@ def _findings_to_dict_list(findings: list[UrlFinding]) -> list[dict]:
 
 
 def analyze_url(url: str) -> dict:
-    normalized_key, host = normalize_for_lookup(url)
+    parsed = parse_http_url(url)
+    normalized_key, host = lookup_key_from_parsed(parsed)
 
     all_findings: list[UrlFinding] = []
 
-    all_findings.extend(check_url_too_long(url))  # Rule 1
-    all_findings.extend(check_many_subdomains(host))  # Rule 2
-
+    all_findings.extend(check_url_too_long(url))  # Regula 1
+    all_findings.extend(check_many_subdomains(host))  # Regula 2
+    all_findings.extend(check_at_in_url(parsed))  # Regula 3
 
     score = 0
     for f in all_findings:

@@ -1,7 +1,7 @@
-from urllib.parse import urlparse
+from urllib.parse import ParseResult, urlparse
 
 
-def normalize_for_lookup(url: str) -> tuple[str, str]:
+def parse_http_url(url: str) -> ParseResult:
     text = url.strip()
     if text == "":
         raise ValueError("empty url")
@@ -18,9 +18,19 @@ def normalize_for_lookup(url: str) -> tuple[str, str]:
     if host == "":
         raise ValueError("bad host")
 
+    return parsed
+
+
+def lookup_key_from_parsed(parsed: ParseResult) -> tuple[str, str]:
+    host = (parsed.hostname or "").lower()
     path = parsed.path or "/"
     if path != "/" and path.endswith("/"):
         path = path.rstrip("/")
 
     key = host + path
     return key, host
+
+
+def normalize_for_lookup(url: str) -> tuple[str, str]:
+    parsed = parse_http_url(url)
+    return lookup_key_from_parsed(parsed)
