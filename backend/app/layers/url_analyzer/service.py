@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 from app.core.url_normalize import normalize_for_lookup
 from app.layers.url_analyzer.finding import UrlFinding
-from app.layers.url_analyzer.rules.patterns import check_url_too_long
+from app.layers.url_analyzer.rules.patterns import check_many_subdomains, check_url_too_long
 
 # Maximum score for this layer (each new rule can increase the total)
 MAX_LAYER_SCORE = 50
@@ -22,8 +22,8 @@ def analyze_url(url: str) -> dict:
 
     all_findings: list[UrlFinding] = []
 
-    all_findings.extend(check_url_too_long(url))        # Rule 1
-    
+    all_findings.extend(check_url_too_long(url))  # Rule 1
+    all_findings.extend(check_many_subdomains(host))  # Rule 2
 
 
     score = 0
