@@ -1,4 +1,5 @@
 import ipaddress
+import re
 from urllib.parse import ParseResult
 
 from app.layers.url_analyzer.finding import UrlFinding
@@ -95,9 +96,10 @@ def check_ip_host(host: str) -> list[UrlFinding]:
     return findings
 
 
-# Rule 5: too many % in path + query
-MIN_PERCENT_SIGNS = 4
+# Rule 5: encoding suspect in path + query
+MIN_VALID_PERCENT_SEQUENCES = 3
 POINTS_SUSPICIOUS_ENCODING = 10
+PERCENT_XX_PATTERN = re.compile(r"%[0-9A-Fa-f]{2}")
 
 
 def _path_and_query_text(parsed: ParseResult) -> str:
@@ -111,17 +113,31 @@ def _path_and_query_text(parsed: ParseResult) -> str:
 def check_suspicious_encoding(parsed: ParseResult) -> list[UrlFinding]:
     findings: list[UrlFinding] = []
     target = _path_and_query_text(parsed)
-    percent_count = target.count("%")
 
-    if percent_count >= MIN_PERCENT_SIGNS:
+    valid_sequences = PERCENT_XX_PATTERN.findall(target)
+    valid_count = len(valid_sequences)
+    percent_sign_count = target.count("%")
+
+    if valid_count >= MIN_VALID_PERCENT_SEQUENCES:
         findings.append(
             UrlFinding(
                 rule="suspicious_encoding",
                 points=POINTS_SUSPICIOUS_ENCODING,
                 detail=(
-                    f"Path or query has {percent_count} percent signs "
-                    f"({MIN_PERCENT_SIGNS} or more is suspicious)."
+                    f"Path or query has {valid_count} percent-encoded sequences "
+                    f"({MIN_VALID_PERCENT_SEQUENCES} or more is suspicious)."
                 ),
+            )
+        )
+        return findings
+
+    # % without two hex digits after 
+    if percent_sign_count > valid_count:
+        findings.append(
+            UrlFinding(
+                rule="suspicious_encoding",
+                points=POINTS_SUSPICIOUS_ENCODING,
+                detail="Path or query has invalid or incomplete percent-encoding.",
             )
         )
 
