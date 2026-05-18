@@ -1,4 +1,4 @@
-import { isRestrictedPageUrl } from "../../lib/restrictedPageUrl";
+import { isRestrictedPageUrl } from "../restrictedPageUrl";
 import { isUrlWhitelisted } from "./storage";
 import type { WhitelistStepResult } from "./types";
 

@@ -6,8 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.blacklist import router as blacklist_router
-from app.services.blacklist.openphish import openphish_store
-from app.services.blacklist.phishunt import phishunt_store
+from app.layers.blacklist.openphish import openphish_store
+from app.layers.blacklist.phishunt import phishunt_store
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger(__name__)

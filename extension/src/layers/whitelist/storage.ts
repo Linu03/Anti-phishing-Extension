@@ -1,4 +1,4 @@
-import { hostFromInput } from "../../lib/urlHost";
+import { hostFromInput } from "../urlHost";
 
 const WHITELIST_STORAGE_KEY = "personalAllowlistHosts";
 const BLOCKLIST_STORAGE_KEY = "personalBlocklistUrls";

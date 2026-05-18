@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.services.blacklist.service import check_blacklist
+from app.layers.blacklist.service import check_blacklist
 
 router = APIRouter(prefix="/blacklist")
 

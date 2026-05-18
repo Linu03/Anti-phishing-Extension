@@ -6,16 +6,16 @@ import time
 
 import httpx
 
-from app.services.blacklist.feeds import PHISHUNT_FEED_TXT
-from app.services.blacklist.normalize import normalize_for_lookup
+from app.core.url_normalize import normalize_for_lookup
+from app.layers.blacklist.feeds import OPENPHISH_FEED_TXT
 
 log = logging.getLogger(__name__)
 
-FEED_URL = PHISHUNT_FEED_TXT
+FEED_URL = OPENPHISH_FEED_TXT
 REFRESH_EVERY_SEC = 900
 
 
-class PhishHuntStore:
+class OpenPhishStore:
     def __init__(self) -> None:
         self._listed_paths: set[str] = set()
         self._listed_hosts: set[str] = set()
@@ -44,7 +44,7 @@ class PhishHuntStore:
             response.raise_for_status()
             text = response.text
         except Exception as exc:
-            log.warning("phishunt download failed: %s", exc)
+            log.warning("openphish download failed: %s", exc)
             return
 
         new_paths: set[str] = set()
@@ -64,7 +64,7 @@ class PhishHuntStore:
         self._listed_paths = new_paths
         self._listed_hosts = new_hosts
         self._last_load_time = time.time()
-        log.info("phishunt ok: %s urls", len(new_paths))
+        log.info("openphish ok: %s urls", len(new_paths))
 
     def match(self, lookup_key: str, host: str) -> bool:
         if lookup_key in self._listed_paths:
@@ -74,4 +74,4 @@ class PhishHuntStore:
         return False
 
 
-phishunt_store = PhishHuntStore()
+openphish_store = OpenPhishStore()

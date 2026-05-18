@@ -1,6 +1,7 @@
-import { fetchBlocklistCheck, getApiBaseUrl } from "../lib/blocklistApi";
-import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../lib/personalBlocklist";
-import { isRestrictedPageUrl } from "../lib/restrictedPageUrl";
+import { fetchBlocklistCheck } from "../layers/blacklist/api";
+import { getApiBaseUrl } from "../layers/apiBase";
+import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
+import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
 
 const MSG_GO_BACK = "AFS_GO_BACK";
 const MSG_REMOVE_PERSONAL = "AFS_REMOVE_PERSONAL";

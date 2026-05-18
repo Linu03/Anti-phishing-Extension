@@ -1,4 +1,4 @@
-import type { LayerSignal } from "../../lib/types";
+import type { LayerSignal } from "../types";
 import type { WhitelistStepResult } from "./types";
 
 const POINTS_IF_TRUSTED = -15;

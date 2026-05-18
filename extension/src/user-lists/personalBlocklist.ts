@@ -1,34 +1,34 @@
-import { hostFromInput } from "./urlHost";
+import { hostFromInput } from "../layers/urlHost";
 
 const STORAGE_KEY = "personalBlocklistUrls";
 const WHITELIST_STORAGE_KEY = "personalAllowlistHosts";
 
-export function normalizeUrlForPersonalBlock(url: string): string{
+export function normalizeUrlForPersonalBlock(url: string): string {
   const t = url.trim();
-  if (t === ""){
+  if (t === "") {
     return "";
   }
   let u: URL;
-  try{
+  try {
     u = new URL(t);
-  } catch{
+  } catch {
     return t;
   }
   const proto = u.protocol.toLowerCase();
-  if (proto !== "http:" && proto !== "https:"){
+  if (proto !== "http:" && proto !== "https:") {
     return t;
   }
   let host = u.hostname.toLowerCase();
-  if (host === ""){
+  if (host === "") {
     return t;
   }
   const port = u.port;
   const authority = port ? `${host}:${port}` : host;
   let path = u.pathname;
-  if (path === ""){
+  if (path === "") {
     path = "/";
   }
-  if (path.length > 1 && path.endsWith("/")){
+  if (path.length > 1 && path.endsWith("/")) {
     path = path.slice(0, -1);
   }
   return `${proto}//${authority}${path}${u.search}`;
@@ -53,54 +53,53 @@ async function isHostOnWhitelist(host: string): Promise<boolean> {
   return false;
 }
 
-async function saveHostList(hosts: string[]): Promise<void>{
+async function saveHostList(hosts: string[]): Promise<void> {
   const bag: Record<string, string[]> = {};
   bag[STORAGE_KEY] = hosts;
   await chrome.storage.local.set(bag);
 }
 
-async function getPersonalBlocklist(): Promise<string[]>{
+async function getPersonalBlocklist(): Promise<string[]> {
   const data = await chrome.storage.local.get(STORAGE_KEY);
   const value = data[STORAGE_KEY];
-  if (value === undefined || value === null || !Array.isArray(value)){
+  if (value === undefined || value === null || !Array.isArray(value)) {
     return [];
   }
 
   let hadFullUrl = false;
   const hosts: string[] = [];
 
-  for (let i = 0; i < value.length; i++){
+  for (let i = 0; i < value.length; i++) {
     const item = value[i];
-    if (typeof item !== "string" || item.length === 0){
+    if (typeof item !== "string" || item.length === 0) {
       continue;
     }
-    if (item.includes("://")){
+    if (item.includes("://")) {
       hadFullUrl = true;
     }
     const h = hostFromInput(item);
-    if (h === ""){
+    if (h === "") {
       continue;
     }
     let dup = false;
-    for (let j = 0; j < hosts.length; j++){
-      if (hosts[j] === h){
+    for (let j = 0; j < hosts.length; j++) {
+      if (hosts[j] === h) {
         dup = true;
         break;
       }
     }
-    if (!dup){
+    if (!dup) {
       hosts.push(h);
     }
   }
 
-  if (hadFullUrl){
+  if (hadFullUrl) {
     await saveHostList(hosts);
   }
 
   return hosts;
 }
 
-/** Returneaza false daca nu s-a putut adauga (ex. e pe whitelist). */
 export async function addPersonalBlock(url: string): Promise<boolean> {
   const host = hostFromInput(url);
   if (host === "") {
@@ -123,28 +122,28 @@ export async function addPersonalBlock(url: string): Promise<boolean> {
   return true;
 }
 
-export async function removePersonalBlock(url: string): Promise<void>{
+export async function removePersonalBlock(url: string): Promise<void> {
   const host = hostFromInput(url);
   const list = await getPersonalBlocklist();
   const next: string[] = [];
 
-  for (let i = 0; i < list.length; i++){
-    if (list[i] !== host){
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] !== host) {
       next.push(list[i]);
     }
   }
   await saveHostList(next);
 }
 
-export async function isUrlPersonallyBlocked(url: string): Promise<boolean>{
+export async function isUrlPersonallyBlocked(url: string): Promise<boolean> {
   const host = hostFromInput(url);
-  if (host === ""){
+  if (host === "") {
     return false;
   }
   const list = await getPersonalBlocklist();
 
-  for (let i = 0; i < list.length; i++){
-    if (list[i] === host){
+  for (let i = 0; i < list.length; i++) {
+    if (list[i] === host) {
       return true;
     }
   }

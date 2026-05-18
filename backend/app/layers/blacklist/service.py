@@ -5,9 +5,9 @@ from dataclasses import dataclass
 
 import httpx
 
-from app.services.blacklist.normalize import normalize_for_lookup
-from app.services.blacklist.openphish import openphish_store
-from app.services.blacklist.phishunt import phishunt_store
+from app.core.url_normalize import normalize_for_lookup
+from app.layers.blacklist.openphish import openphish_store
+from app.layers.blacklist.phishunt import phishunt_store
 
 
 @dataclass

@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, ListPlus, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
+import { loadActiveTabPhishingAnalysis } from "../layers/analysis/loadActiveTabAnalysis";
+import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
+import type { AnalysisSnapshot, LayerSignal, Verdict } from "../layers/types";
+import { scoreHue, verdictFromScore, verdictLabel } from "../layers/verdict";
 import { addWhitelist, isUrlWhitelisted, removeWhitelist } from "../layers/whitelist/storage";
-import { loadActiveTabPhishingAnalysis } from "../lib/loadActiveTabAnalysis";
-import { addPersonalBlock, isUrlPersonallyBlocked } from "../lib/personalBlocklist";
-import { isRestrictedPageUrl } from "../lib/restrictedPageUrl";
-import { scoreHue, verdictFromScore, verdictLabel } from "../lib/verdict";
-import type { AnalysisSnapshot, LayerSignal, Verdict } from "../lib/types";
+import { addPersonalBlock, isUrlPersonallyBlocked } from "../user-lists/personalBlocklist";
 
 function VerdictBadge({ verdict }: { verdict: Verdict }) {
   const base = "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-sans text-xs font-semibold";

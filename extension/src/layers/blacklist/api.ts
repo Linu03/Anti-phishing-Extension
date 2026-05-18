@@ -5,18 +5,6 @@ export type ServerBlocklistResponse = {
   host: string;
 };
 
-export function getApiBaseUrl(): string {
-  const raw = import.meta.env.VITE_BLOCKLIST_API_BASE;
-  if (typeof raw === "string" && raw.trim() !== "") {
-    let base = raw.trim();
-    while (base.endsWith("/")) {
-      base = base.slice(0, -1);
-    }
-    return base;
-  }
-  return "http://127.0.0.1:8000";
-}
-
 export async function fetchBlocklistCheck(apiBaseUrl: string, pageUrl: string): Promise<ServerBlocklistResponse> {
   const checkUrl = `${apiBaseUrl}/v1/blacklist/check`;
   const response = await fetch(checkUrl, {
@@ -45,5 +33,3 @@ export async function fetchBlocklistCheck(apiBaseUrl: string, pageUrl: string): 
   const data: ServerBlocklistResponse = await response.json();
   return data;
 }
-
-
