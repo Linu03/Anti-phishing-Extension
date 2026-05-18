@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.blacklist import router as blacklist_router
+from app.api.v1.url_analyzer import router as url_analyzer_router
 from app.layers.blacklist.openphish import openphish_store
 from app.layers.blacklist.phishunt import phishunt_store
 
@@ -41,6 +42,7 @@ app.add_middleware(
 )
 
 app.include_router(blacklist_router, prefix="/v1")
+app.include_router(url_analyzer_router, prefix="/v1")
 
 
 @app.get("/health")

@@ -1,6 +1,6 @@
 # Documentație locală — nu este versionată
 docs/
-
+.cursor/ 
 # Extension / Node
 extension/node_modules/
 extension/dist/
