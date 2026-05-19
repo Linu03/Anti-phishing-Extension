@@ -11,3 +11,6 @@ __pycache__/
 *.pyc
 .env
 .env.*
+
+# Tranco raw list 
+backend/data/top-1m.csv
