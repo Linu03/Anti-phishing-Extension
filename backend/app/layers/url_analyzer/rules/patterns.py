@@ -1,6 +1,9 @@
 import ipaddress
+import math
 import re
 from urllib.parse import ParseResult
+
+import tldextract
 
 from app.layers.url_analyzer.finding import UrlFinding
 
@@ -214,5 +217,69 @@ def check_phishing_keywords(host: str, parsed: ParseResult) -> list[UrlFinding]:
                 ),
             )
         )
+
+    return findings
+
+
+# Rule 9: high entropy hostname label
+MIN_LABEL_LENGTH_FOR_ENTROPY = 8
+MIN_ENTROPY = 3
+POINTS_HIGH_ENTROPY = 8
+
+
+def _shannon_entropy(text: str) -> float:
+    if text == "":
+        return 0.0
+
+    length = len(text)
+    counts: dict[str, int] = {}
+
+    for char in text:
+        if char in counts:
+            counts[char] = counts[char] + 1
+        else:
+            counts[char] = 1
+
+    entropy = 0.0
+    for count in counts.values():
+        probability = count / length
+        entropy = entropy - (probability * math.log2(probability))
+
+    return entropy
+
+
+def _hostname_label_for_entropy(host: str) -> str | None:
+    extracted = tldextract.extract(host)
+    if extracted.domain == "":
+        return None
+
+    return extracted.domain.lower()
+
+
+def check_high_entropy_hostname(host: str) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+
+    label = _hostname_label_for_entropy(host)
+    if label is None:
+        return findings
+
+    if len(label) < MIN_LABEL_LENGTH_FOR_ENTROPY:
+        return findings
+
+    entropy = _shannon_entropy(label)
+    if entropy < MIN_ENTROPY:
+        return findings
+
+    entropy_text = f"{entropy:.2f}"
+    findings.append(
+        UrlFinding(
+            rule="high_entropy_hostname",
+            points=POINTS_HIGH_ENTROPY,
+            detail=(
+                f'Hostname label "{label}" has high entropy ({entropy_text}, '
+                f"limit {MIN_ENTROPY})."
+            ),
+        )
+    )
 
     return findings
