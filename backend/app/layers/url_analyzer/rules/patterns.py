@@ -4,6 +4,32 @@ from urllib.parse import ParseResult
 
 from app.layers.url_analyzer.finding import UrlFinding
 
+
+def _path_and_query_text(parsed: ParseResult) -> str:
+    path = parsed.path or ""
+    query = parsed.query
+    if query is None or query == "":
+        return path
+    return path + "?" + query
+
+
+def _collect_url_parts(host: str, parsed: ParseResult) -> list[str]:
+    parts: list[str] = []
+
+    for label in host.split("."):
+        label = label.strip().lower()
+        if label != "":
+            parts.append(label)
+
+    path_text = _path_and_query_text(parsed)
+    for segment in path_text.replace("?", "/").split("/"):
+        segment = segment.strip().lower()
+        if segment != "":
+            parts.append(segment)
+
+    return parts
+
+
 # Rule 1 : URL is too long
 MAX_URL_LENGTH = 200
 POINTS_URL_TOO_LONG = 10
@@ -102,14 +128,6 @@ POINTS_SUSPICIOUS_ENCODING = 10
 PERCENT_XX_PATTERN = re.compile(r"%[0-9A-Fa-f]{2}")
 
 
-def _path_and_query_text(parsed: ParseResult) -> str:
-    path = parsed.path or ""
-    query = parsed.query
-    if query is None or query == "":
-        return path
-    return path + "?" + query
-
-
 def check_suspicious_encoding(parsed: ParseResult) -> list[UrlFinding]:
     findings: list[UrlFinding] = []
     target = _path_and_query_text(parsed)
@@ -138,6 +156,62 @@ def check_suspicious_encoding(parsed: ParseResult) -> list[UrlFinding]:
                 rule="suspicious_encoding",
                 points=POINTS_SUSPICIOUS_ENCODING,
                 detail="Path or query has invalid or incomplete percent-encoding.",
+            )
+        )
+
+    return findings
+
+
+# Rule 6: Phishing keywords - match on parts of host/path
+MIN_KEYWORD_HITS = 2
+POINTS_PHISHING_KEYWORDS = 6
+
+PHISHING_KEYWORDS = {
+    "login",
+    "signin",
+    "verify",
+    "secure",
+    "account",
+    "password",
+    "update",
+    "confirm",
+    "banking",
+    "wallet",
+    "oauth",
+    "suspend",
+}
+
+
+def _keyword_part_variants(part: str) -> list[str]:
+    lowered = part.lower()
+    variants = [lowered]
+    without_dash = lowered.replace("-", "")
+    if without_dash != lowered and without_dash != "":
+        variants.append(without_dash)
+    return variants
+
+
+def check_phishing_keywords(host: str, parsed: ParseResult) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+    hits: list[str] = []
+    already_seen: set[str] = set()
+
+    for part in _collect_url_parts(host, parsed):
+        for variant in _keyword_part_variants(part):
+            if variant in PHISHING_KEYWORDS and variant not in already_seen:
+                already_seen.add(variant)
+                hits.append(variant)
+
+    if len(hits) >= MIN_KEYWORD_HITS:
+        hit_text = ", ".join(hits)
+        findings.append(
+            UrlFinding(
+                rule="phishing_keywords",
+                points=POINTS_PHISHING_KEYWORDS,
+                detail=(
+                    f"URL parts match suspicious keywords: {hit_text} "
+                    f"({MIN_KEYWORD_HITS} or more)."
+                ),
             )
         )
 

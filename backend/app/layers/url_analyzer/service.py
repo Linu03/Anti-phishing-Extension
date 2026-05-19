@@ -8,6 +8,7 @@ from app.layers.url_analyzer.rules.patterns import (
     check_at_in_url,
     check_ip_host,
     check_many_subdomains,
+    check_phishing_keywords,
     check_suspicious_encoding,
     check_url_too_long,
 )
@@ -34,6 +35,7 @@ def analyze_url(url: str) -> dict:
     all_findings.extend(check_at_in_url(parsed))  # Rule 3
     all_findings.extend(check_ip_host(host))  # Rule 4
     all_findings.extend(check_suspicious_encoding(parsed))  # Rule 5
+    all_findings.extend(check_phishing_keywords(host, parsed))  # Rule 6
 
     score = 0
     for f in all_findings:
