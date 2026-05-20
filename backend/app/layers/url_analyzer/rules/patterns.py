@@ -283,3 +283,51 @@ def check_high_entropy_hostname(host: str) -> list[UrlFinding]:
     )
 
     return findings
+
+
+# Rule 10: IDN / homograph
+POINTS_IDN_HOMOGRAPH = 10
+
+
+def _host_has_punycode_label(host: str) -> bool:
+    host_lower = host.lower()
+    for label in host_lower.split("."):
+        if label.startswith("xn--"):
+            return True
+    return False
+
+
+def _host_has_non_ascii(host: str) -> bool:
+    for char in host:
+        if ord(char) > 127:
+            return True
+    return False
+
+
+def check_idn_homograph(host: str) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+
+    has_punycode = _host_has_punycode_label(host)
+    has_non_ascii = _host_has_non_ascii(host)
+
+    if not has_punycode and not has_non_ascii:
+        return findings
+
+    reasons: list[str] = []
+    if has_punycode:
+        reasons.append("Punycode label (xn--)")
+    if has_non_ascii:
+        reasons.append("non-ASCII characters")
+
+    reason_text = ", ".join(reasons)
+    findings.append(
+        UrlFinding(
+            rule="idn_homograph",
+            points=POINTS_IDN_HOMOGRAPH,
+            detail=(
+                f"Host has {reason_text} (possible homograph or IDN abuse)."
+            ),
+        )
+    )
+
+    return findings

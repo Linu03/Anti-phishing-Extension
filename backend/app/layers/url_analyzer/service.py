@@ -8,6 +8,7 @@ from app.layers.url_analyzer.finding import UrlFinding
 from app.layers.url_analyzer.rules.patterns import (
     check_at_in_url,
     check_high_entropy_hostname,
+    check_idn_homograph,
     check_ip_host,
     check_many_subdomains,
     check_phishing_keywords,
@@ -41,6 +42,7 @@ def analyze_url(url: str) -> dict:
     all_findings.extend(check_phishing_keywords(host, parsed))  # Rule 6
     all_findings.extend(check_typosquatting(host, get_brand_registry()))  # Rule 7
     all_findings.extend(check_high_entropy_hostname(host))  # Rule 9
+    all_findings.extend(check_idn_homograph(host))  # Rule 10
 
     score = 0
     for f in all_findings:
