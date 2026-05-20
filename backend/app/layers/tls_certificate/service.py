@@ -5,6 +5,7 @@ from urllib.parse import ParseResult
 
 from app.core.url_normalize import parse_http_url
 from app.layers.tls_certificate.finding import TlsFinding
+from app.layers.tls_certificate.inspector import inspect_tls
 from app.layers.tls_certificate.rules import check_no_https
 
 MAX_LAYER_SCORE = 40
@@ -17,7 +18,7 @@ def _findings_to_dict_list(findings: list[TlsFinding]) -> list[dict]:
     return result
 
 
-def _build_result(host: str, parsed: ParseResult, all_findings: list[TlsFinding]) -> dict:
+def _build_result( host: str, parsed: ParseResult, all_findings: list[TlsFinding], inspection: dict | None) -> dict:
     score = 0
     for f in all_findings:
         score = score + f.points
@@ -25,13 +26,24 @@ def _build_result(host: str, parsed: ParseResult, all_findings: list[TlsFinding]
     if score > MAX_LAYER_SCORE:
         score = MAX_LAYER_SCORE
 
+    issuer: str | None = None
+    not_before: str | None = None
+    not_after: str | None = None
+
+    if inspection is not None:
+        cert = inspection.get("cert")
+        if cert is not None:
+            issuer = cert.get("issuer") or None
+            not_before = cert.get("not_before")
+            not_after = cert.get("not_after")
+
     return {
         "score": score,
         "host": host,
         "scheme": parsed.scheme,
-        "issuer": None,
-        "not_before": None,
-        "not_after": None,
+        "issuer": issuer,
+        "not_before": not_before,
+        "not_after": not_after,
         "findings": _findings_to_dict_list(all_findings),
     }
 
@@ -46,6 +58,8 @@ async def analyze_tls(url: str) -> dict:
     all_findings.extend(no_https_findings)
 
     if len(no_https_findings) > 0:
-        return _build_result(host, parsed, all_findings)
+        return _build_result(host, parsed, all_findings, None)
 
-    return _build_result(host, parsed, all_findings)
+    inspection = await inspect_tls(parsed)
+
+    return _build_result(host, parsed, all_findings, inspection)
