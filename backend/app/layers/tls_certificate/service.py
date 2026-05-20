@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict
+from urllib.parse import ParseResult
 
 from app.core.url_normalize import parse_http_url
 from app.layers.tls_certificate.finding import TlsFinding
+from app.layers.tls_certificate.rules import check_no_https
 
 MAX_LAYER_SCORE = 40
 
@@ -15,13 +17,11 @@ def _findings_to_dict_list(findings: list[TlsFinding]) -> list[dict]:
     return result
 
 
-async def analyze_tls(url: str) -> dict:
-    parsed = parse_http_url(url)
-    host = parsed.hostname or ""
-
-    all_findings: list[TlsFinding] = []
-
+def _build_result(host: str, parsed: ParseResult, all_findings: list[TlsFinding]) -> dict:
     score = 0
+    for f in all_findings:
+        score = score + f.points
+
     if score > MAX_LAYER_SCORE:
         score = MAX_LAYER_SCORE
 
@@ -36,3 +36,16 @@ async def analyze_tls(url: str) -> dict:
     }
 
 
+async def analyze_tls(url: str) -> dict:
+    parsed = parse_http_url(url)
+    host = parsed.hostname or ""
+
+    all_findings: list[TlsFinding] = []
+
+    no_https_findings = check_no_https(parsed)
+    all_findings.extend(no_https_findings)
+
+    if len(no_https_findings) > 0:
+        return _build_result(host, parsed, all_findings)
+
+    return _build_result(host, parsed, all_findings)
