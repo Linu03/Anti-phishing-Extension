@@ -1,8 +1,6 @@
 from __future__ import annotations
-
 from datetime import datetime, timezone
 from urllib.parse import ParseResult
-
 from app.layers.tls_certificate.finding import TlsFinding
 
 POINTS_NO_HTTPS = 10
@@ -10,6 +8,9 @@ POINTS_CERT_EXPIRED = 15
 POINTS_HOSTNAME_MISMATCH = 15
 POINTS_SELF_SIGNED = 10
 POINTS_UNTRUSTED_CHAIN = 10
+POINTS_CERT_VERY_NEW = 5
+POINTS_ISSUER_INFO = 0
+CERT_VERY_NEW_MAX_DAYS = 14
 
 
 def check_no_https(parsed: ParseResult) -> list[TlsFinding]:
@@ -50,6 +51,21 @@ def _is_expired_now(not_after_iso: str | None) -> tuple[bool, int]:
 
     delta = now - not_after
     return True, delta.days
+
+
+def _certificate_age_in_days(not_before_iso: str | None) -> int | None:
+    not_before = _parse_iso_datetime(not_before_iso)
+    if not_before is None:
+        return None
+
+    now = datetime.now(tz=timezone.utc)
+    if now < not_before:
+        return None
+
+    delta = now - not_before
+    return delta.days
+
+
 
 
 def _hostname_matches_one(host: str, pattern: str) -> bool:
@@ -215,8 +231,70 @@ def check_untrusted_chain(inspection: dict) -> list[TlsFinding]:
     return findings
 
 
+def check_cert_very_new(inspection: dict) -> list[TlsFinding]:
+    findings: list[TlsFinding] = []
+
+    cert = inspection.get("cert")
+    if cert is None:
+        return findings
+
+    not_before_iso = cert.get("not_before")
+    age_in_days = _certificate_age_in_days(not_before_iso)
+
+    if age_in_days is None:
+        return findings
+
+    if age_in_days >= CERT_VERY_NEW_MAX_DAYS:
+        return findings
+
+    detail = (
+        f"Certificate was issued {age_in_days} days ago "
+        f"(less than {CERT_VERY_NEW_MAX_DAYS} days)."
+    )
+
+    findings.append(
+        TlsFinding(
+            rule="cert_very_new",
+            points=POINTS_CERT_VERY_NEW,
+            detail=detail,
+        )
+    )
+
+    return findings
+
+
+def check_issuer_info(inspection: dict) -> list[TlsFinding]:
+    findings: list[TlsFinding] = []
+
+    cert = inspection.get("cert")
+    if cert is None:
+        return findings
+
+    issuer = cert.get("issuer") or ""
+    if issuer == "":
+        return findings
+
+    detail = f"Certificate issuer: {issuer}"
+
+    findings.append(
+        TlsFinding(
+            rule="issuer_info",
+            points=POINTS_ISSUER_INFO,
+            detail=detail,
+        )
+    )
+
+    return findings
+
+
+
+
 def check_certificate(inspection: dict, host: str) -> list[TlsFinding]:
     findings: list[TlsFinding] = []
+    cert = inspection.get("cert")
+    if cert is not None:
+        findings.extend(check_issuer_info(inspection))
+        findings.extend(check_cert_very_new(inspection))
 
     if inspection.get("handshake_ok") is True:
         return findings
@@ -230,3 +308,5 @@ def check_certificate(inspection: dict, host: str) -> list[TlsFinding]:
     findings.extend(check_untrusted_chain(inspection))
 
     return findings
+
+
