@@ -6,7 +6,7 @@ from urllib.parse import ParseResult
 from app.core.url_normalize import parse_http_url
 from app.layers.tls_certificate.finding import TlsFinding
 from app.layers.tls_certificate.inspector import inspect_tls
-from app.layers.tls_certificate.rules import check_no_https
+from app.layers.tls_certificate.rules import check_certificate, check_no_https
 
 MAX_LAYER_SCORE = 40
 
@@ -61,5 +61,8 @@ async def analyze_tls(url: str) -> dict:
         return _build_result(host, parsed, all_findings, None)
 
     inspection = await inspect_tls(parsed)
+
+    cert_findings = check_certificate(inspection, host)
+    all_findings.extend(cert_findings)
 
     return _build_result(host, parsed, all_findings, inspection)
