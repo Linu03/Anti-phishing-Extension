@@ -2,6 +2,8 @@ import { buildBlocklistLayer } from "../blacklist/layer";
 import type { BlocklistStepResult } from "../blacklist/types";
 import { sumLayerContributions } from "../sumContributions";
 import type { AnalysisSnapshot } from "../types";
+import { buildTlsLayer } from "../tls/layer";
+import type { TlsStepResult } from "../tls/types";
 import { buildUrlAnalyzerLayer } from "../url-analyzer/layer";
 import type { UrlAnalyzerStepResult } from "../url-analyzer/types";
 import { verdictFromScore } from "../verdict";
@@ -14,11 +16,13 @@ export function composePhishingAnalysis(
   blocklistStep: BlocklistStepResult,
   whitelistStep: WhitelistStepResult,
   urlAnalyzerStep: UrlAnalyzerStepResult,
+  tlsStep: TlsStepResult,
 ): AnalysisSnapshot {
   const blocklistLayer = buildBlocklistLayer(blocklistStep);
   const whitelistLayer = buildWhitelistLayer(whitelistStep);
   const urlAnalyzerLayer = buildUrlAnalyzerLayer(urlAnalyzerStep);
-  const layers = [blocklistLayer, whitelistLayer, urlAnalyzerLayer];
+  const tlsLayer = buildTlsLayer(tlsStep);
+  const layers = [blocklistLayer, whitelistLayer, urlAnalyzerLayer, tlsLayer];
 
   const threatScore = sumLayerContributions(layers);
   const timeText = new Date().toLocaleString("en-GB");
