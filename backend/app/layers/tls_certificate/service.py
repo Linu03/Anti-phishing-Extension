@@ -4,6 +4,12 @@ from dataclasses import asdict
 from urllib.parse import ParseResult
 
 from app.core.url_normalize import parse_http_url
+from app.layers.tls_certificate.cache import (
+    get_cached_response,
+    make_cache_key,
+    set_cached_response,
+    ttl_seconds_from_inspection,
+)
 from app.layers.tls_certificate.finding import TlsFinding
 from app.layers.tls_certificate.inspector import inspect_tls
 from app.layers.tls_certificate.rules import check_certificate, check_no_https
@@ -60,9 +66,19 @@ async def analyze_tls(url: str) -> dict:
     if len(no_https_findings) > 0:
         return _build_result(host, parsed, all_findings, None)
 
+    cache_key = make_cache_key(host, parsed.port)
+    cached_response = get_cached_response(cache_key)
+    if cached_response is not None:
+        return cached_response
+
     inspection = await inspect_tls(parsed)
 
     cert_findings = check_certificate(inspection, host)
     all_findings.extend(cert_findings)
 
-    return _build_result(host, parsed, all_findings, inspection)
+    result = _build_result(host, parsed, all_findings, inspection)
+
+    ttl_seconds = ttl_seconds_from_inspection(inspection)
+    set_cached_response(cache_key, result, ttl_seconds)
+
+    return result
