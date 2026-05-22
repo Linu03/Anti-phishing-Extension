@@ -15,6 +15,7 @@ from app.layers.url_analyzer.rules.patterns import (
     check_suspicious_encoding,
     check_url_too_long,
 )
+from app.layers.url_analyzer.rules.suspicious_tld import check_suspicious_tld
 from app.layers.url_analyzer.rules.typosquatting import check_typosquatting
 
 # maximum score for this layer
@@ -41,6 +42,7 @@ def analyze_url(url: str) -> dict:
     all_findings.extend(check_suspicious_encoding(parsed))  # Rule 5
     all_findings.extend(check_phishing_keywords(host, parsed))  # Rule 6
     all_findings.extend(check_typosquatting(host, get_brand_registry()))  # Rule 7
+    all_findings.extend(check_suspicious_tld(host))  # Rule 8
     all_findings.extend(check_high_entropy_hostname(host))  # Rule 9
     all_findings.extend(check_idn_homograph(host))  # Rule 10
 
