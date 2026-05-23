@@ -11,6 +11,13 @@ MIN_SIMILARITY_SCORE = 82
 MAX_LENGTH_DIFF = 2
 POINTS_TYPOSQUATTING = 12
 
+# Digit → letter before fuzzy match (g00gle → google, faceb00k → facebook)
+LEET_MAP = str.maketrans("013458", "oieash")
+
+
+def _normalize_leet(label: str) -> str:
+    return label.translate(LEET_MAP)
+
 
 def _registered_domain(host: str) -> str | None:
     extracted = tldextract.extract(host)
@@ -36,23 +43,36 @@ def _is_legitimate_host(host: str, registry: BrandRegistry) -> bool:
     return registered in registry.legitimate_domains
 
 
-def _find_best_brand_match(sld: str, registry: BrandRegistry) -> tuple[str, int] | None:
+def _find_best_brand_match(
+    sld: str, registry: BrandRegistry
+) -> tuple[str, int, bool] | None:
+    sld_leet = _normalize_leet(sld)
+    used_leet_normalization = sld_leet != sld
+
     best_brand = ""
     best_score = 0
+    best_via_leet = False
 
     for brand in registry.brands:
         if abs(len(brand) - len(sld)) > MAX_LENGTH_DIFF:
             continue
 
-        score = fuzz.ratio(sld, brand)
+        score_raw = fuzz.ratio(sld, brand)
+        score_leet = (
+            fuzz.ratio(sld_leet, brand) if used_leet_normalization else score_raw
+        )
+        score = score_raw if score_raw >= score_leet else score_leet
+        via_leet = used_leet_normalization and score_leet > score_raw
+
         if score > best_score:
             best_score = score
             best_brand = brand
+            best_via_leet = via_leet
 
     if best_brand == "" or best_score < MIN_SIMILARITY_SCORE:
         return None
 
-    return best_brand, best_score
+    return best_brand, int(round(best_score)), best_via_leet
 
 
 def check_typosquatting(host: str, registry: BrandRegistry) -> list[UrlFinding]:
@@ -72,18 +92,22 @@ def check_typosquatting(host: str, registry: BrandRegistry) -> list[UrlFinding]:
     if match is None:
         return findings
 
-    brand, score = match
+    brand, score, matched_via_leet = match
     if sld == brand:
         return findings
 
-    score_text = str(int(round(score)))
+    score_text = str(score)
+    leet_note = ""
+    if matched_via_leet:
+        leet_note = " after digit/leet normalization"
+
     findings.append(
         UrlFinding(
             rule="typosquatting",
             points=POINTS_TYPOSQUATTING,
             detail=(
-                f'Host label "{sld}" is {score_text}% similar to brand "{brand}" '
-                f"(possible typosquatting)."
+                f'Host label "{sld}" is {score_text}% similar to brand "{brand}"'
+                f"{leet_note} (possible typosquatting)."
             ),
         )
     )

@@ -285,49 +285,90 @@ def check_high_entropy_hostname(host: str) -> list[UrlFinding]:
     return findings
 
 
-# Rule 10: IDN / homograph
+# Unicode normalization changed the URL (hidden homograph / invisible chars)
+POINTS_UNICODE_NORMALIZATION = 8
+
+
+def check_unicode_normalization(url_raw: str, url_clean: str) -> list[UrlFinding]:
+    findings: list[UrlFinding] = []
+
+    if url_raw == url_clean:
+        return findings
+
+    findings.append(
+        UrlFinding(
+            rule="unicode_normalization",
+            points=POINTS_UNICODE_NORMALIZATION,
+            detail=(
+                "URL was changed by Unicode normalization "
+                "(possible homograph or invisible characters)."
+            ),
+        )
+    )
+
+    return findings
+
+
+# Rule 10: IDN / homograph (host + path + query)
 POINTS_IDN_HOMOGRAPH = 10
 
 
-def _host_has_punycode_label(host: str) -> bool:
-    host_lower = host.lower()
-    for label in host_lower.split("."):
+def _text_has_punycode_label(text: str) -> bool:
+    text_lower = text.lower()
+    for label in text_lower.split("."):
         if label.startswith("xn--"):
             return True
     return False
 
 
-def _host_has_non_ascii(host: str) -> bool:
-    for char in host:
+def _text_has_non_ascii(text: str) -> bool:
+    for char in text:
         if ord(char) > 127:
             return True
     return False
 
 
-def check_idn_homograph(host: str) -> list[UrlFinding]:
+def _idn_reasons_for_text(text: str) -> list[str]:
+    reasons: list[str] = []
+    if _text_has_punycode_label(text):
+        reasons.append("Punycode label (xn--)")
+    if _text_has_non_ascii(text):
+        reasons.append("non-ASCII characters")
+    return reasons
+
+
+def check_idn_homograph(host: str, parsed: ParseResult) -> list[UrlFinding]:
     findings: list[UrlFinding] = []
 
-    has_punycode = _host_has_punycode_label(host)
-    has_non_ascii = _host_has_non_ascii(host)
+    host_reasons = _idn_reasons_for_text(host)
+    if len(host_reasons) > 0:
+        reason_text = ", ".join(host_reasons)
+        findings.append(
+            UrlFinding(
+                rule="idn_homograph",
+                points=POINTS_IDN_HOMOGRAPH,
+                detail=(
+                    f"Host has {reason_text} (possible homograph or IDN abuse)."
+                ),
+            )
+        )
 
-    if not has_punycode and not has_non_ascii:
+    path_and_query = _path_and_query_text(parsed)
+    if path_and_query == "":
         return findings
 
-    reasons: list[str] = []
-    if has_punycode:
-        reasons.append("Punycode label (xn--)")
-    if has_non_ascii:
-        reasons.append("non-ASCII characters")
-
-    reason_text = ", ".join(reasons)
-    findings.append(
-        UrlFinding(
-            rule="idn_homograph",
-            points=POINTS_IDN_HOMOGRAPH,
-            detail=(
-                f"Host has {reason_text} (possible homograph or IDN abuse)."
-            ),
+    path_reasons = _idn_reasons_for_text(path_and_query)
+    if len(path_reasons) > 0:
+        reason_text = ", ".join(path_reasons)
+        findings.append(
+            UrlFinding(
+                rule="idn_homograph",
+                points=POINTS_IDN_HOMOGRAPH,
+                detail=(
+                    f"Path or query has {reason_text} "
+                    "(possible homograph or IDN abuse)."
+                ),
+            )
         )
-    )
 
     return findings
