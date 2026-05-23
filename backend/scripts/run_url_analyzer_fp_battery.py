@@ -129,6 +129,8 @@ CASES: list[Case] = [
     Case("S28", "https://login.oracle.com/", "suspicious_legit", "Oracle login"),
     Case("S29", "https://account.apple.com/", "suspicious_legit", "Apple account"),
     Case("S30", "https://iforgot.apple.com/", "suspicious_legit", "Apple password recovery"),
+    Case("S31", "https://google.analytics-something.com/", "suspicious_legit", "Partner google subdomain"),
+    Case("S32", "https://apple.cdn-provider.com/", "suspicious_legit", "Partner apple CDN subdomain"),
     # --- PHISHING / ATTACK ---
     Case("H01", "https://paypaI.com/login", "phishing", "PayPal capital I"),
     Case("H02", "https://www.paypaI.com/", "phishing", "PayPal I subdomain"),
@@ -186,6 +188,9 @@ CASES: list[Case] = [
     Case("H54", "https://www.amaz0n-security.com/", "phishing", "Amazon security typo host"),
     Case("H55", "https://evil.com/%2e%2e/admin", "phishing", "Encoding in path"),
     Case("H56", "https://www.xn--pple-43d.com/", "phishing", "Punycode apple-like"),
+    Case("H57", "https://google.secure-login.xyz/", "phishing", "Brand subdomain + risky host"),
+    Case("H58", "https://facebook.verify-account.top/", "phishing", "Brand subdomain + .top"),
+    Case("H59", "https://google.analytics-partner.com/", "phishing", "Brand only - partner-like host"),
 ]
 
 # score > 0 => predicted positive (phishing/suspicious)

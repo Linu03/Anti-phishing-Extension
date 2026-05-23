@@ -3,12 +3,14 @@ import type { UrlAnalyzerStepResult } from "./types";
 
 export function buildUrlAnalyzerLayer(step: UrlAnalyzerStepResult): LayerSignal {
   if (step.status === "ok") {
+    const riskPrefix = `URL phishing risk: ${step.riskLabel} (score ${step.score}/50).`;
+
     if (step.findings.length === 0) {
       return {
         id: "url-analyzer",
         label: "URL analyzer",
         contribution: step.score,
-        detail: "No suspicious URL patterns.",
+        detail: `${riskPrefix} No suspicious URL patterns.`,
       };
     }
 
@@ -16,7 +18,7 @@ export function buildUrlAnalyzerLayer(step: UrlAnalyzerStepResult): LayerSignal 
     for (const f of step.findings) {
       lines.push(f.detail);
     }
-    const detailText = lines.join(" ");
+    const detailText = `${riskPrefix} ${lines.join(" ")}`;
 
     return {
       id: "url-analyzer",

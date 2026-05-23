@@ -1,5 +1,7 @@
 export type ServerUrlAnalyzerResponse = {
   score: number;
+  risk: "low" | "medium" | "high";
+  risk_label: string;
   host: string;
   url_normalized: string;
   findings: Array<{

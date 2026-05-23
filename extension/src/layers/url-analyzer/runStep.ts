@@ -18,6 +18,8 @@ export async function runUrlAnalyzerStep(pageUrl: string): Promise<UrlAnalyzerSt
     return {
       status: "ok",
       score: serverData.score,
+      risk: serverData.risk,
+      riskLabel: serverData.risk_label,
       findings: serverData.findings,
     };
   } catch (e) {

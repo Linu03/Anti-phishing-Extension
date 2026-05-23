@@ -20,6 +20,8 @@ class UrlFindingResponse(BaseModel):
 
 class UrlAnalyzerResponse(BaseModel):
     score: int
+    risk: str
+    risk_label: str
     host: str
     url_normalized: str
     findings: list[UrlFindingResponse]
@@ -34,6 +36,8 @@ async def url_analyzer_analyze(body: UrlAnalyzerRequest) -> UrlAnalyzerResponse:
 
     return UrlAnalyzerResponse(
         score=result["score"],
+        risk=result["risk"],
+        risk_label=result["risk_label"],
         host=result["host"],
         url_normalized=result["url_normalized"],
         findings=result["findings"],
