@@ -15,5 +15,6 @@ __pycache__/
 # Tranco raw list 
 backend/data/top-1m.csv
 
+# Scripts verifying url analyzer rules
 scripts/run_url_analyzer_fp_battery.py
 scripts/run_url_analyzer_fp_battery.pyc

@@ -50,7 +50,7 @@ def analyze_url(url: str) -> dict:
     all_findings.extend(check_typosquatting(host, registry))  # Rule 8
     all_findings.extend(check_brand_in_subdomain(host, registry))  # Rule 8b
     all_findings.extend(check_suspicious_tld(host))  # Rule 9
-    all_findings.extend(check_high_entropy_hostname(host)) # Rule 10
+    all_findings.extend(check_high_entropy_hostname(host))  # Rule 10
     all_findings.extend(check_idn_homograph(host, parsed)) # Rule 11
 
     score = 0

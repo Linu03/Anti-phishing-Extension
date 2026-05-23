@@ -191,6 +191,12 @@ CASES: list[Case] = [
     Case("H57", "https://google.secure-login.xyz/", "phishing", "Brand subdomain + risky host"),
     Case("H58", "https://facebook.verify-account.top/", "phishing", "Brand subdomain + .top"),
     Case("H59", "https://google.analytics-partner.com/", "phishing", "Brand only - partner-like host"),
+    Case(
+        "H60",
+        "https://stackoverflow-sth.com/questions",
+        "phishing",
+        "Lookalike domain not in Tranco (entropy still applies)",
+    ),
 ]
 
 # score > 0 => predicted positive (phishing/suspicious)
