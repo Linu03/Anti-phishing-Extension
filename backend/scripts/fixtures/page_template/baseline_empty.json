@@ -41,6 +41,7 @@
   "expected": {
     "gate": "SAFE",
     "score": 0,
-    "rules": []
+    "rules": [],
+    "credential_context": true
   }
 }

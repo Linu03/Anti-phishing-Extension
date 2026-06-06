@@ -1,0 +1,47 @@
+from __future__ import annotations
+
+from collections.abc import Callable
+
+from app.layers.page_template.finding import PageFinding
+from app.layers.page_template.rules.collection import check_collection_status
+from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.schemas import (
+    PageDiffModel,
+    PageSnapshotModel,
+    PriorLayersContextModel,
+)
+
+RuleFn = Callable[ [PageSnapshotModel, PageDiffModel | None, PriorLayersContextModel],list[PageFinding]]
+
+
+def _wrap_snapshot_rule(fn: Callable[[PageSnapshotModel], list[PageFinding]]) -> RuleFn:
+    def run(snapshot: PageSnapshotModel,_diff: PageDiffModel | None, _context: PriorLayersContextModel, ) -> list[PageFinding]:
+        return fn(snapshot)
+
+    return run
+
+
+# Rules that only apply on login / 2FA pages (brand mismatch, form submit, etc.).
+CREDENTIAL_GATED_RULES: list[RuleFn] = [
+]
+
+
+# Rules that run whenever their own required fields are present in the snapshot.
+GENERAL_RULES: list[RuleFn] = [
+    _wrap_snapshot_rule(check_collection_status),
+]
+
+
+def run_all_rules(snapshot: PageSnapshotModel, diff: PageDiffModel | None, context: PriorLayersContextModel) -> tuple[list[PageFinding], bool]:
+
+    credential_context = effective_has_credential_form(snapshot)
+    findings: list[PageFinding] = []
+
+    for rule in GENERAL_RULES:
+        findings.extend(rule(snapshot, diff, context))
+
+    if credential_context:
+        for rule in CREDENTIAL_GATED_RULES:
+            findings.extend(rule(snapshot, diff, context))
+
+    return findings, credential_context

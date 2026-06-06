@@ -80,6 +80,7 @@ export type PageTemplateStepResult =
       score: number;
       gate: PageTemplateGate;
       page_safe: boolean;
+      credential_context: boolean;
       findings: PageTemplateFinding[];
     }
   | { status: "skipped"; reason: string }

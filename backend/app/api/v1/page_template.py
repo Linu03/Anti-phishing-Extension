@@ -22,5 +22,6 @@ async def page_template_analyze(body: PageTemplateAnalyzeRequest) -> PageTemplat
         score=result["score"],
         gate=result["gate"],
         page_safe=result["page_safe"],
+        credential_context=result["credential_context"],
         findings=result["findings"],
     )

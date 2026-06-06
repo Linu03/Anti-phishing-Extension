@@ -1,0 +1,38 @@
+{
+  "id": "P03",
+  "note": "Incomplete collection but brand_hits received — general rules run, not all-or-nothing stop",
+  "snapshot": {
+    "page_url": "https://evil-shop.xyz/signin",
+    "page_host": "evil-shop.xyz",
+    "page_origin": "https://evil-shop.xyz",
+    "collection_ok": false,
+    "collection_error": "CSP blocked iframe enumeration",
+    "has_credential_form": false,
+    "forms": [],
+    "submit_buttons": [],
+    "iframes": [],
+    "meta_refresh_target": "",
+    "base_href_origin": "",
+    "canonical_host": "",
+    "external_script_origins": [],
+    "brand_hits": ["paypal"],
+    "hidden_input_count": 0,
+    "field_profile": {
+      "has_password": false,
+      "has_otp": false,
+      "has_email": false,
+      "has_payment": false,
+      "has_identity": false,
+      "has_file": false,
+      "has_tel": false
+    }
+  },
+  "diff": null,
+  "context": {},
+  "expected": {
+    "gate": "INFO",
+    "score": 0,
+    "rules": ["collection_partial"],
+    "credential_context": false
+  }
+}

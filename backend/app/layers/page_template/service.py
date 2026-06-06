@@ -6,6 +6,7 @@ from app.layers.page_template.amplify import apply_amplification
 from app.layers.page_template.constants import MAX_LAYER_SCORE
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.gate import page_safe_from_gate, resolve_gate
+from app.layers.page_template.rules.runner import run_all_rules
 from app.layers.page_template.schemas import (
     PageDiffModel,
     PageSnapshotModel,
@@ -20,22 +21,12 @@ def _findings_to_dict_list(findings: list[PageFinding]) -> list[dict]:
     return result
 
 
-def _run_rules(
-    snapshot: PageSnapshotModel,
-    diff: PageDiffModel | None,
-    context: PriorLayersContextModel,
-) -> list[PageFinding]:
-    """Business rules are added incrementally in steps 1..14."""
-    _ = (snapshot, diff, context)
-    return []
-
-
 def analyze_page_template(
     snapshot: PageSnapshotModel,
     diff: PageDiffModel | None,
     context: PriorLayersContextModel,
 ) -> dict:
-    findings = _run_rules(snapshot, diff, context)
+    findings, credential_context = run_all_rules(snapshot, diff, context)
 
     base_score = 0
     for finding in findings:
@@ -54,5 +45,6 @@ def analyze_page_template(
         "score": score,
         "gate": gate,
         "page_safe": page_safe_from_gate(gate),
+        "credential_context": credential_context,
         "findings": _findings_to_dict_list(findings),
     }
