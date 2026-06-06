@@ -1,0 +1,46 @@
+{
+  "id": "P00",
+  "note": "Infrastructure baseline — no page rules yet, expect SAFE gate and score 0",
+  "page_url": "https://example.com/login",
+  "snapshot": {
+    "page_url": "https://example.com/login",
+    "page_host": "example.com",
+    "page_origin": "https://example.com",
+    "collection_ok": true,
+    "collection_error": "",
+    "has_credential_form": true,
+    "forms": [],
+    "submit_buttons": [],
+    "iframes": [],
+    "meta_refresh_target": "",
+    "base_href_origin": "",
+    "canonical_host": "",
+    "external_script_origins": [],
+    "brand_hits": [],
+    "hidden_input_count": 0,
+    "field_profile": {
+      "has_password": true,
+      "has_email": false,
+      "has_tel": false,
+      "has_file": false,
+      "has_otp": false,
+      "has_payment": false,
+      "has_identity": false
+    }
+  },
+  "diff": null,
+  "context": {
+    "blocklist_listed": false,
+    "blocklist_sources": [],
+    "whitelist_trusted": false,
+    "url_analyzer_score": 0,
+    "url_analyzer_rules": [],
+    "tls_score": 0,
+    "tls_rules": []
+  },
+  "expected": {
+    "gate": "SAFE",
+    "score": 0,
+    "rules": []
+  }
+}

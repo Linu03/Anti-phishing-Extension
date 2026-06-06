@@ -1,0 +1,54 @@
+import type { PageDiff, PageSnapshot, PriorLayersContextPayload } from "./types";
+
+export type ServerPageTemplateResponse = {
+  score: number;
+  gate: "BLOCK" | "REVIEW" | "SAFE" | "INFO";
+  page_safe: boolean;
+  findings: Array<{
+    rule: string;
+    points: number;
+    detail: string;
+    tier?: string;
+  }>;
+};
+
+export async function fetchPageTemplateAnalyze(
+  apiBaseUrl: string,
+  pageUrl: string,
+  snapshot: PageSnapshot,
+  diff: PageDiff | null,
+  context: PriorLayersContextPayload,
+): Promise<ServerPageTemplateResponse> {
+  const analyzeUrl = `${apiBaseUrl}/v1/page-template/analyze`;
+  const response = await fetch(analyzeUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      page_url: pageUrl,
+      snapshot,
+      diff,
+      context,
+    }),
+  });
+
+  if (!response.ok) {
+    let errorText = `HTTP ${response.status}`;
+    try {
+      const errJson: unknown = await response.json();
+      if (
+        errJson !== null &&
+        typeof errJson === "object" &&
+        "detail" in errJson &&
+        typeof (errJson as { detail: unknown }).detail === "string"
+      ) {
+        errorText = (errJson as { detail: string }).detail;
+      }
+    } catch {
+      // ignore json parse error
+    }
+    throw new Error(errorText);
+  }
+
+  const data: ServerPageTemplateResponse = await response.json();
+  return data;
+}

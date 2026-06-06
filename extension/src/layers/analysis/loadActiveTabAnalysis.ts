@@ -1,9 +1,5 @@
-import { runBlocklistStep } from "../blacklist/runStep";
 import type { AnalysisSnapshot } from "../types";
-import { runTlsStep } from "../tls/runStep";
-import { runUrlAnalyzerStep } from "../url-analyzer/runStep";
-import { runWhitelistStep } from "../whitelist/runStep";
-import { composePhishingAnalysis } from "./composePhishingAnalysis";
+import { runFullTabAnalysis } from "./runFullTabAnalysis";
 
 export async function loadActiveTabPhishingAnalysis(): Promise<AnalysisSnapshot> {
   const tabList = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -19,22 +15,5 @@ export async function loadActiveTabPhishingAnalysis(): Promise<AnalysisSnapshot>
     title = currentTab.title;
   }
 
-  const whitelistStep = await runWhitelistStep(url);
-  const blocklistStep = await runBlocklistStep(url);
-  const urlAnalyzerStep = await runUrlAnalyzerStep(url);
-  const tlsStep = await runTlsStep(url);
-
-  let urlForUi = url.trim();
-  if (urlForUi === "") {
-    urlForUi = "(no url)";
-  }
-
-  return composePhishingAnalysis(
-    urlForUi,
-    title,
-    blocklistStep,
-    whitelistStep,
-    urlAnalyzerStep,
-    tlsStep,
-  );
+  return runFullTabAnalysis(url, title);
 }
