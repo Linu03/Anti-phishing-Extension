@@ -16,5 +16,6 @@ __pycache__/
 backend/data/top-1m.csv
 
 # Scripts verifying url analyzer rules
-scripts/run_url_analyzer_fp_battery.py
-scripts/run_url_analyzer_fp_battery.pyc
+backend/scripts/run_url_analyzer_fp_battery.py
+backend/scripts/run_url_analyzer_fp_battery.pyc
+backend/scripts/fixtures/
