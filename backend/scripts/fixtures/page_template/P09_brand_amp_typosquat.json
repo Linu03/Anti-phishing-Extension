@@ -1,0 +1,24 @@
+{
+  "id": "P09",
+  "note": "Primary mismatch + typosquatting in URL context - +10 AMP (score 38)",
+  "snapshot": {
+    "page_url": "https://paypa1-secure.xyz/login",
+    "page_host": "paypa1-secure.xyz",
+    "page_origin": "https://paypa1-secure.xyz",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["paypal"],
+    "primary_brand_hits": ["paypal"],
+    "field_profile": { "has_password": true }
+  },
+  "context": {
+    "url_analyzer_rules": ["typosquatting"],
+    "url_analyzer_score": 12
+  },
+  "expected": {
+    "gate": "BLOCK",
+    "score": 38,
+    "rules": ["brand_page_host_mismatch"],
+    "credential_context": true
+  }
+}

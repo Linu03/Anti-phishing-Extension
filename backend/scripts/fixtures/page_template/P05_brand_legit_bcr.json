@@ -1,0 +1,21 @@
+{
+  "id": "P05",
+  "note": "Legit - BCR on bcr.ro + password - no mismatch",
+  "snapshot": {
+    "page_url": "https://www.bcr.ro/login",
+    "page_host": "www.bcr.ro",
+    "page_origin": "https://www.bcr.ro",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["bcr"],
+    "primary_brand_hits": ["bcr"],
+    "field_profile": { "has_password": true }
+  },
+  "context": {},
+  "expected": {
+    "gate": "SAFE",
+    "score": 0,
+    "rules": [],
+    "credential_context": true
+  }
+}

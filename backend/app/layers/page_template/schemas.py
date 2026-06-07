@@ -48,6 +48,10 @@ class PageSnapshotModel(BaseModel):
     canonical_host: str = ""
     external_script_origins: list[str] = Field(default_factory=list)
     brand_hits: list[str] = Field(default_factory=list)
+    primary_brand_hits: list[str] = Field(
+        default_factory=list,
+        description="Brands matched on title/H1 only (collector sets this).",
+    )
     hidden_input_count: int = 0
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
 

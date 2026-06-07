@@ -1,0 +1,30 @@
+{
+  "id": "P10",
+  "note": "Shop with Google OAuth submit - OAuth brand excluded when form targets IdP",
+  "snapshot": {
+    "page_url": "https://shop.example.com/login",
+    "page_host": "shop.example.com",
+    "page_origin": "https://shop.example.com",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["google"],
+    "primary_brand_hits": ["google"],
+    "forms": [
+      {
+        "method": "post",
+        "action": "https://accounts.google.com/o/oauth2/auth",
+        "action_origin": "https://accounts.google.com",
+        "same_origin": false,
+        "hidden_count": 2
+      }
+    ],
+    "field_profile": { "has_password": true }
+  },
+  "context": {},
+  "expected": {
+    "gate": "SAFE",
+    "score": 0,
+    "rules": [],
+    "credential_context": true
+  }
+}

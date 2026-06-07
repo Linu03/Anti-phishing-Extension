@@ -1,0 +1,23 @@
+{
+  "id": "P08",
+  "note": "Mismatch on trusted site - Tier B +15 REVIEW, not BLOCK",
+  "snapshot": {
+    "page_url": "https://intranet.corp.local/paypal-mirror",
+    "page_host": "intranet.corp.local",
+    "page_origin": "https://intranet.corp.local",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["paypal"],
+    "primary_brand_hits": ["paypal"],
+    "field_profile": { "has_password": true }
+  },
+  "context": {
+    "whitelist_trusted": true
+  },
+  "expected": {
+    "gate": "REVIEW",
+    "score": 15,
+    "rules": ["brand_page_host_mismatch"],
+    "credential_context": true
+  }
+}

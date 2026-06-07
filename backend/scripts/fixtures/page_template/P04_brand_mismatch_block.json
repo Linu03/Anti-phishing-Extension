@@ -1,0 +1,21 @@
+{
+  "id": "P04",
+  "note": "Phishing - BCR on evil host + password + primary brand - Tier A BLOCK",
+  "snapshot": {
+    "page_url": "https://bcr-secure-login.xyz/signin",
+    "page_host": "bcr-secure-login.xyz",
+    "page_origin": "https://bcr-secure-login.xyz",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["bcr"],
+    "primary_brand_hits": ["bcr"],
+    "field_profile": { "has_password": true, "has_email": true }
+  },
+  "context": {},
+  "expected": {
+    "gate": "BLOCK",
+    "score": 28,
+    "rules": ["brand_page_host_mismatch"],
+    "credential_context": true
+  }
+}

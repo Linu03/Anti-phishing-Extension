@@ -1,0 +1,21 @@
+{
+  "id": "P07",
+  "note": "PayPal in footer only (not primary) + password - Tier B REVIEW +12",
+  "snapshot": {
+    "page_url": "https://evil-shop.xyz/checkout",
+    "page_host": "evil-shop.xyz",
+    "page_origin": "https://evil-shop.xyz",
+    "collection_ok": true,
+    "has_credential_form": true,
+    "brand_hits": ["paypal"],
+    "primary_brand_hits": [],
+    "field_profile": { "has_password": true }
+  },
+  "context": {},
+  "expected": {
+    "gate": "REVIEW",
+    "score": 12,
+    "rules": ["brand_page_host_mismatch"],
+    "credential_context": true
+  }
+}

@@ -52,6 +52,7 @@ export type PageSnapshot = {
   canonical_host: string;
   external_script_origins: string[];
   brand_hits: string[];
+  primary_brand_hits: string[];
   hidden_input_count: number;
   field_profile: FieldProfile;
 };
