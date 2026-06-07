@@ -6,6 +6,7 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.brand import check_brand_page_host_mismatch
 from app.layers.page_template.rules.collection import check_collection_status
 from app.layers.page_template.rules.forms import (
+    check_http_form_action_on_https_page,
     check_invalid_form_action,
     check_suspicious_submit_destination,
 )
@@ -30,6 +31,7 @@ def _wrap_snapshot_rule(fn: Callable[[PageSnapshotModel], list[PageFinding]]) ->
 CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_brand_page_host_mismatch,
     check_invalid_form_action,
+    check_http_form_action_on_https_page,
     check_suspicious_submit_destination,
 ]
 

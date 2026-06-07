@@ -19,6 +19,9 @@ RULE_INVALID_FORM_ACTION = "invalid_form_action"
 POINTS_SUBMIT_DESTINATION_CAP = 15
 RULE_SUSPICIOUS_SUBMIT = "suspicious_submit_destination"
 
+POINTS_HTTP_FORM_ACTION = 25
+RULE_HTTP_FORM_ACTION = "http_form_action_on_https_page"
+
 # not valid schemes for form action 
 _INVALID_SCHEMES = frozenset({"javascript", "data", "vbscript"})
 
@@ -111,11 +114,7 @@ def _same_registrable_domain(page_host: str, submit_host: str) -> bool:
 
 
 # use layer 3 URL analyzer to check if the form submit destination is suspicious
-def check_suspicious_submit_destination(
-    snapshot: PageSnapshotModel,
-    _diff: PageDiffModel | None,
-    _context: PriorLayersContextModel,
-) -> list[PageFinding]:
+def check_suspicious_submit_destination(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
 
     if not effective_has_credential_form(snapshot):
         return []
@@ -168,6 +167,39 @@ def check_suspicious_submit_destination(
                     f"'{resolved}' (URL analyzer: {rules_text})."
                 ),
                 tier="B",
+            )
+        ]
+
+    return []
+
+
+def check_http_form_action_on_https_page(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
+    if not effective_has_credential_form(snapshot):
+        return []
+
+    page_url = snapshot.page_url.strip()
+    if urlparse(page_url).scheme.lower() != "https":
+        return []
+
+    for action, source in _collect_submit_targets(snapshot):
+        text = action.strip()
+        lower = text.lower()
+        if lower.startswith(("javascript:", "data:", "vbscript:")):
+            continue
+
+        resolved = urljoin(page_url, text)
+        if urlparse(resolved).scheme.lower() != "http":
+            continue
+
+        return [
+            PageFinding(
+                rule=RULE_HTTP_FORM_ACTION,
+                points=POINTS_HTTP_FORM_ACTION,
+                detail=(
+                    f"Credential form {source} posts over HTTP to "
+                    f"'{resolved}' while the page is HTTPS."
+                ),
+                tier="A",
             )
         ]
 
