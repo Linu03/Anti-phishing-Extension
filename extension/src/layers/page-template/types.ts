@@ -48,6 +48,7 @@ export type PageSnapshot = {
   submit_buttons: SubmitButtonSnapshot[];
   iframes: IframeSnapshot[];
   meta_refresh_target: string;
+  meta_refresh_delay_sec: number | null;
   base_href_origin: string;
   canonical_host: string;
   external_script_origins: string[];

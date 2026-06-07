@@ -44,6 +44,7 @@ class PageSnapshotModel(BaseModel):
     submit_buttons: list[SubmitButtonSnapshotModel] = Field(default_factory=list)
     iframes: list[IframeSnapshotModel] = Field(default_factory=list)
     meta_refresh_target: str = ""
+    meta_refresh_delay_sec: int | None = None
     base_href_origin: str = ""
     canonical_host: str = ""
     external_script_origins: list[str] = Field(default_factory=list)

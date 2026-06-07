@@ -10,6 +10,11 @@ from app.layers.page_template.rules.forms import (
     check_invalid_form_action,
     check_suspicious_submit_destination,
 )
+from app.layers.page_template.rules.navigation import (
+    check_base_href_cross_domain,
+    check_canonical_host_mismatch,
+    check_meta_refresh_cross_domain,
+)
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
     PageDiffModel,
@@ -33,6 +38,9 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_invalid_form_action,
     check_http_form_action_on_https_page,
     check_suspicious_submit_destination,
+    check_meta_refresh_cross_domain,
+    check_base_href_cross_domain,
+    check_canonical_host_mismatch,
 ]
 
 
