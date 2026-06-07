@@ -5,7 +5,10 @@ from collections.abc import Callable
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.brand import check_brand_page_host_mismatch
 from app.layers.page_template.rules.collection import check_collection_status
-from app.layers.page_template.rules.forms import check_invalid_form_action
+from app.layers.page_template.rules.forms import (
+    check_invalid_form_action,
+    check_suspicious_submit_destination,
+)
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
     PageDiffModel,
@@ -27,6 +30,7 @@ def _wrap_snapshot_rule(fn: Callable[[PageSnapshotModel], list[PageFinding]]) ->
 CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_brand_page_host_mismatch,
     check_invalid_form_action,
+    check_suspicious_submit_destination,
 ]
 
 
