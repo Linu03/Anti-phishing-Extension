@@ -1,5 +1,10 @@
 import type { PageDiff, PageSnapshot, PriorLayersContextPayload } from "./types";
 
+export type ServerBrandIdsResponse = {
+  brand_ids: string[];
+  version: string;
+};
+
 export type ServerPageTemplateResponse = {
   score: number;
   gate: "BLOCK" | "REVIEW" | "SAFE" | "INFO";
@@ -12,6 +17,18 @@ export type ServerPageTemplateResponse = {
     tier?: string;
   }>;
 };
+
+export async function fetchBrandIds(apiBaseUrl: string): Promise<ServerBrandIdsResponse> {
+  const url = `${apiBaseUrl}/v1/page-template/brand-ids`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data: ServerBrandIdsResponse = await response.json();
+  return data;
+}
 
 export async function fetchPageTemplateAnalyze(
   apiBaseUrl: string,

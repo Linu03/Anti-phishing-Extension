@@ -4,8 +4,9 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite build --watch",
-    "build": "vite build",
+    "build:collector": "vite build --config vite.collector.config.ts",
+    "dev": "npm run build && vite build --watch",
+    "build": "vite build && npm run build:collector",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },

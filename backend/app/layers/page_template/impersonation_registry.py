@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import logging
 from dataclasses import dataclass
+from datetime import datetime, timezone
 from pathlib import Path
 
 log = logging.getLogger(__name__)
@@ -65,3 +66,20 @@ def get_impersonation_registry() -> ImpersonationRegistry:
         _registry = load_impersonation_registry()
 
     return _registry
+
+
+def get_brand_ids_catalog(path: Path | None = None) -> tuple[list[str], str]:
+    """Public brand IDs for client-side page scanning (no official domains)."""
+    target = path or IMPERSONATION_JSON_PATH
+    registry = get_impersonation_registry()
+    brand_ids = sorted(registry.brand_domains.keys())
+
+    try:
+        mtime = target.stat().st_mtime
+        version = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+    except OSError:
+        version = "unknown"
+
+    return brand_ids, version

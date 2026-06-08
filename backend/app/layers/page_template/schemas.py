@@ -95,3 +95,14 @@ class PageTemplateAnalyzeResponse(BaseModel):
     page_safe: bool
     credential_context: bool
     findings: list[PageFindingResponse]
+
+
+class BrandIdsResponse(BaseModel):
+    brand_ids: list[str] = Field(
+        default_factory=list,
+        description="Brand identifiers for client-side page scanning only.",
+    )
+    version: str = Field(
+        ...,
+        description="Registry version (source file mtime UTC).",
+    )
