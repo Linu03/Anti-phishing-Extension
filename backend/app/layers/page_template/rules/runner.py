@@ -46,7 +46,7 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
 
 # Rules that run whenever their own required fields are present in the snapshot.
 GENERAL_RULES: list[RuleFn] = [
-    _wrap_snapshot_rule(check_collection_status),
+    check_collection_status,
 ]
 
 

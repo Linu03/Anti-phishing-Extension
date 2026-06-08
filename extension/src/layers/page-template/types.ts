@@ -76,6 +76,10 @@ export type PriorLayersContextPayload = {
   tls_rules: string[];
 };
 
+export type PageTemplateSkipKind = "restricted" | "not_active";
+
+export type PageTemplateCollectionFailedKind = "untrusted" | "trusted";
+
 export type PageTemplateStepResult =
   | {
       status: "ok";
@@ -85,6 +89,10 @@ export type PageTemplateStepResult =
       credential_context: boolean;
       findings: PageTemplateFinding[];
     }
-  | { status: "skipped"; reason: string }
+  | { status: "skipped"; kind: PageTemplateSkipKind }
   | { status: "failed"; errorMessage: string }
-  | { status: "collection_failed"; reason: string };
+  | {
+      status: "collection_failed";
+      kind: PageTemplateCollectionFailedKind;
+      score?: number;
+    };
