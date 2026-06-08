@@ -10,6 +10,7 @@ from app.layers.page_template.rules.forms import (
     check_invalid_form_action,
     check_suspicious_submit_destination,
 )
+from app.layers.page_template.rules.iframes import check_iframe_signals
 from app.layers.page_template.rules.navigation import (
     check_base_href_cross_domain,
     check_canonical_host_mismatch,
@@ -41,6 +42,7 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_meta_refresh_cross_domain,
     check_base_href_cross_domain,
     check_canonical_host_mismatch,
+    check_iframe_signals,
 ]
 
 

@@ -1,4 +1,3 @@
-"""Shared allowlists for page-template rules (expanded in later steps)."""
 
 IDP_SUBMIT_ORIGINS: frozenset[str] = frozenset(
     {
@@ -19,5 +18,22 @@ SCRIPT_FP_ORIGINS: frozenset[str] = frozenset(
         "cdnjs.cloudflare.com",
     }
 )
+
+IFRAME_TRUSTED_ORIGINS: frozenset[str] = frozenset(
+    {
+        "accounts.google.com",
+        "login.microsoftonline.com",
+        "login.live.com",
+        "github.com",
+        "challenges.cloudflare.com",
+        "www.google.com",
+        "www.recaptcha.net",
+        "checkout.stripe.com",
+        "js.stripe.com",
+        "www.paypal.com",
+    }
+)
+
+IFRAME_MAX_TOTAL_POINTS = 20
 
 MAX_LAYER_SCORE = 60
