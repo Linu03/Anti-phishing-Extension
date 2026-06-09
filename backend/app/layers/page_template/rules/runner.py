@@ -20,7 +20,10 @@ from app.layers.page_template.rules.navigation import (
     check_canonical_host_mismatch,
     check_meta_refresh_cross_domain,
 )
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import (
+    check_credential_form_on_http,
+    effective_has_credential_form,
+)
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -35,6 +38,7 @@ RuleFn = Callable[
 CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_brand_page_host_mismatch,
     check_invalid_form_action,
+    check_credential_form_on_http,
     check_http_form_action_on_https_page,
     check_suspicious_submit_destination,
     check_meta_refresh_cross_domain,
