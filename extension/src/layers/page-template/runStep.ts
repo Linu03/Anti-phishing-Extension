@@ -40,7 +40,6 @@ export async function runPageTemplateStep(
       baseUrl,
       apiPageUrl !== "" ? apiPageUrl : pageUrl,
       snapshot,
-      null,
       context,
     );
 

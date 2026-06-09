@@ -4,7 +4,6 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.rules.trust_context import TrustLevel, resolve_page_trust_context
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -45,7 +44,7 @@ def _sensitive_detail(page_host: str,has_payment: bool,has_identity: bool) -> st
     )
 
 
-def check_sensitive_field_collection(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,context: PriorLayersContextModel) -> list[PageFinding]:
+def check_sensitive_field_collection(snapshot: PageSnapshotModel, context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 
@@ -72,7 +71,7 @@ def check_sensitive_field_collection(snapshot: PageSnapshotModel,_diff: PageDiff
     ]
 
 
-def check_file_upload_with_login(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,context: PriorLayersContextModel) -> list[PageFinding]:
+def check_file_upload_with_login(snapshot: PageSnapshotModel, context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 

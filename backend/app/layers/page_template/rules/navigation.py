@@ -7,7 +7,6 @@ import tldextract
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -64,7 +63,7 @@ def _pld_mismatch(page_host: str, other_host: str) -> bool:
     return page_pld != other_pld
 
 
-def check_meta_refresh_cross_domain(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
+def check_meta_refresh_cross_domain(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 
@@ -100,7 +99,7 @@ def check_meta_refresh_cross_domain(snapshot: PageSnapshotModel,_diff: PageDiffM
     ]
 
 
-def check_base_href_cross_domain(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel,) -> list[PageFinding]:
+def check_base_href_cross_domain(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 
@@ -131,7 +130,6 @@ def check_base_href_cross_domain(snapshot: PageSnapshotModel,_diff: PageDiffMode
 
 def check_canonical_host_mismatch(
     snapshot: PageSnapshotModel,
-    _diff: PageDiffModel | None,
     _context: PriorLayersContextModel,
 ) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):

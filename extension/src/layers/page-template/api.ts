@@ -1,4 +1,4 @@
-import type { PageDiff, PageSnapshot, PriorLayersContextPayload } from "./types";
+import type { PageSnapshot, PriorLayersContextPayload } from "./types";
 
 export type ServerBrandIdsResponse = {
   brand_ids: string[];
@@ -34,7 +34,6 @@ export async function fetchPageTemplateAnalyze(
   apiBaseUrl: string,
   pageUrl: string,
   snapshot: PageSnapshot,
-  diff: PageDiff | null,
   context: PriorLayersContextPayload,
 ): Promise<ServerPageTemplateResponse> {
   const analyzeUrl = `${apiBaseUrl}/v1/page-template/analyze`;
@@ -44,7 +43,6 @@ export async function fetchPageTemplateAnalyze(
     body: JSON.stringify({
       page_url: pageUrl,
       snapshot,
-      diff,
       context,
     }),
   });

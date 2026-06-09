@@ -7,7 +7,6 @@ import tldextract
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -114,7 +113,7 @@ def _same_registrable_domain(page_host: str, submit_host: str) -> bool:
 
 
 # use layer 3 URL analyzer to check if the form submit destination is suspicious
-def check_suspicious_submit_destination(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
+def check_suspicious_submit_destination(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
 
     if not effective_has_credential_form(snapshot):
         return []
@@ -173,7 +172,7 @@ def check_suspicious_submit_destination(snapshot: PageSnapshotModel,_diff: PageD
     return []
 
 
-def check_http_form_action_on_https_page(snapshot: PageSnapshotModel,_diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
+def check_http_form_action_on_https_page(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 
@@ -208,7 +207,6 @@ def check_http_form_action_on_https_page(snapshot: PageSnapshotModel,_diff: Page
 
 def check_invalid_form_action(
     snapshot: PageSnapshotModel,
-    _diff: PageDiffModel | None,
     _context: PriorLayersContextModel,
 ) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):

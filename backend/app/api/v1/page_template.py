@@ -22,7 +22,7 @@ async def page_template_brand_ids() -> BrandIdsResponse:
 @router.post("/analyze", response_model=PageTemplateAnalyzeResponse)
 async def page_template_analyze(body: PageTemplateAnalyzeRequest) -> PageTemplateAnalyzeResponse:
     try:
-        result = analyze_page_template(body.snapshot, body.diff, body.context)
+        result = analyze_page_template(body.snapshot, body.context)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 

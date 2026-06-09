@@ -1,3 +1,5 @@
+import { buildBehavioralLayer } from "../behavioral/layer";
+import type { BehavioralStepResult } from "../behavioral/types";
 import { buildBlocklistLayer } from "../blacklist/layer";
 import type { BlocklistStepResult } from "../blacklist/types";
 import { sumLayerContributions } from "../sumContributions";
@@ -20,18 +22,21 @@ export function composePhishingAnalysis(
   urlAnalyzerStep: UrlAnalyzerStepResult,
   tlsStep: TlsStepResult,
   pageTemplateStep: PageTemplateStepResult,
+  behavioralStep: BehavioralStepResult,
 ): AnalysisSnapshot {
   const blocklistLayer = buildBlocklistLayer(blocklistStep);
   const whitelistLayer = buildWhitelistLayer(whitelistStep);
   const urlAnalyzerLayer = buildUrlAnalyzerLayer(urlAnalyzerStep);
   const tlsLayer = buildTlsLayer(tlsStep);
   const pageTemplateLayer = buildPageTemplateLayer(pageTemplateStep);
+  const behavioralLayer = buildBehavioralLayer(behavioralStep);
   const layers = [
     blocklistLayer,
     whitelistLayer,
     urlAnalyzerLayer,
     tlsLayer,
     pageTemplateLayer,
+    behavioralLayer,
   ];
 
   const threatScore = sumLayerContributions(layers);

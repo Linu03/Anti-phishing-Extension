@@ -4,7 +4,6 @@ import json
 from pathlib import Path
 
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -34,11 +33,9 @@ def main() -> None:
         note = data.get("note", "")
 
         snapshot = PageSnapshotModel.model_validate(data["snapshot"])
-        diff_raw = data.get("diff")
-        diff = PageDiffModel.model_validate(diff_raw) if diff_raw is not None else None
         context = PriorLayersContextModel.model_validate(data.get("context", {}))
 
-        result = analyze_page_template(snapshot, diff, context)
+        result = analyze_page_template(snapshot, context)
         expected = data.get("expected", {})
 
         expected_gate = expected.get("gate", "SAFE")

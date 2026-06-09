@@ -8,7 +8,6 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
     IframeSnapshotModel,
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -140,7 +139,7 @@ def _apply_iframe_points_cap(findings: list[PageFinding]) -> list[PageFinding]:
     return adjusted
 
 
-def check_iframe_signals(snapshot: PageSnapshotModel, _diff: PageDiffModel | None,_context: PriorLayersContextModel) -> list[PageFinding]:
+def check_iframe_signals(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):
         return []
 

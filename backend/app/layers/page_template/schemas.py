@@ -57,14 +57,6 @@ class PageSnapshotModel(BaseModel):
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
 
 
-class PageDiffModel(BaseModel):
-    forms_appeared: bool = False
-    password_inputs_increased: bool = False
-    action_origin_changed: bool = False
-    brand_hits_increased: bool = False
-    observed_ms: int = 0
-
-
 class PriorLayersContextModel(BaseModel):
     blocklist_listed: bool = False
     blocklist_sources: list[str] = Field(default_factory=list)
@@ -78,7 +70,6 @@ class PriorLayersContextModel(BaseModel):
 class PageTemplateAnalyzeRequest(BaseModel):
     page_url: str = Field(..., min_length=4, max_length=8192)
     snapshot: PageSnapshotModel
-    diff: PageDiffModel | None = None
     context: PriorLayersContextModel = Field(default_factory=PriorLayersContextModel)
 
 

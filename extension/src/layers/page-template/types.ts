@@ -58,14 +58,6 @@ export type PageSnapshot = {
   field_profile: FieldProfile;
 };
 
-export type PageDiff = {
-  forms_appeared: boolean;
-  password_inputs_increased: boolean;
-  action_origin_changed: boolean;
-  brand_hits_increased: boolean;
-  observed_ms: number;
-};
-
 export type PriorLayersContextPayload = {
   blocklist_listed: boolean;
   blocklist_sources: string[];

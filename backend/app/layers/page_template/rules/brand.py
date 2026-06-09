@@ -9,7 +9,6 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.impersonation_registry import get_impersonation_registry
 from app.layers.page_template.rules.credential import effective_has_credential_form
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -161,7 +160,6 @@ def _mismatched_brands(snapshot: PageSnapshotModel, brands: list[str]) -> list[s
 
 def check_brand_page_host_mismatch(
     snapshot: PageSnapshotModel,
-    _diff: PageDiffModel | None,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
     if not effective_has_credential_form(snapshot):

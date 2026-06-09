@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.schemas import PageDiffModel, PriorLayersContextModel
+from app.layers.page_template.schemas import PriorLayersContextModel
 
 
 _URL_RULES_AMP_WITH_BRAND = frozenset({"typosquatting", "nested_url", "brand_in_subdomain"})
@@ -11,7 +11,6 @@ def apply_amplification(
     base_score: int,
     findings: list[PageFinding],
     context: PriorLayersContextModel,
-    diff: PageDiffModel | None,
 ) -> int:
     score = base_score
 
@@ -22,5 +21,4 @@ def apply_amplification(
                 score = score + 10
                 break
 
-    _ = diff
     return score

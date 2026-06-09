@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -47,7 +46,6 @@ def effective_field_signals(snapshot: PageSnapshotModel) -> bool:
 
 def check_collection_status(
     snapshot: PageSnapshotModel,
-    _diff: PageDiffModel | None,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
     if snapshot.collection_ok:

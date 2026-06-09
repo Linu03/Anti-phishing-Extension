@@ -8,7 +8,6 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.gate import page_safe_from_gate, resolve_gate
 from app.layers.page_template.rules.runner import run_all_rules
 from app.layers.page_template.schemas import (
-    PageDiffModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
@@ -23,10 +22,9 @@ def _findings_to_dict_list(findings: list[PageFinding]) -> list[dict]:
 
 def analyze_page_template(
     snapshot: PageSnapshotModel,
-    diff: PageDiffModel | None,
     context: PriorLayersContextModel,
 ) -> dict:
-    findings, credential_context = run_all_rules(snapshot, diff, context)
+    findings, credential_context = run_all_rules(snapshot, context)
 
     base_score = 0
     for finding in findings:
@@ -35,7 +33,7 @@ def analyze_page_template(
     if base_score > MAX_LAYER_SCORE:
         base_score = MAX_LAYER_SCORE
 
-    score = apply_amplification(base_score, findings, context, diff)
+    score = apply_amplification(base_score, findings, context)
     if score > MAX_LAYER_SCORE:
         score = MAX_LAYER_SCORE
 
