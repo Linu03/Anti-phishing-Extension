@@ -56,6 +56,7 @@ class PageSnapshotModel(BaseModel):
         description="Brands matched on title/H1 only (collector sets this).",
     )
     hidden_input_count: int = 0
+    is_framed: bool = False
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
 
 

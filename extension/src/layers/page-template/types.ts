@@ -55,6 +55,7 @@ export type PageSnapshot = {
   brand_hits: string[];
   primary_brand_hits: string[];
   hidden_input_count: number;
+  is_framed: boolean;
   field_profile: FieldProfile;
 };
 

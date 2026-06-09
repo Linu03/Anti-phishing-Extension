@@ -25,6 +25,7 @@ from app.layers.page_template.rules.credential import (
     check_credential_form_on_http,
     effective_has_credential_form,
 )
+from app.layers.page_template.rules.framing import check_login_page_is_framed
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -49,6 +50,7 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_sensitive_field_collection,
     check_file_upload_with_login,
     check_excessive_hidden_inputs,
+    check_login_page_is_framed,
 ]
 
 

@@ -36,6 +36,7 @@ export function buildEmptySnapshot(pageUrl: string, collectionError: string): Pa
     brand_hits: [],
     primary_brand_hits: [],
     hidden_input_count: 0,
+    is_framed: false,
     field_profile: emptyFieldProfile(),
   };
 }

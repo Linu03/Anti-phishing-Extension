@@ -353,6 +353,14 @@ function countHiddenInputs(): number {
   }
 }
 
+function pageIsFramed(): boolean {
+  try {
+    return window.self !== window.top;
+  } catch {
+    return true;
+  }
+}
+
 export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
   const pageHref = window.location.href;
   const pageOrigin = sanitizedTabUrl(pageHref);
@@ -455,6 +463,7 @@ export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
     brand_hits: brandAll,
     primary_brand_hits: brandPrimary,
     hidden_input_count: hiddenInputCount,
+    is_framed: pageIsFramed(),
     field_profile: fieldProfile,
   };
 }

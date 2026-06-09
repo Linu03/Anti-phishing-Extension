@@ -26,10 +26,6 @@ function isCacheEntry(value: unknown): value is BrandIdsCacheEntry {
   return true;
 }
 
-/**
- * Brand IDs for local page scanning. Source of truth is backend registry;
- * cached in session storage with a 1-hour TTL.
- */
 export async function getCachedBrandIds(apiBaseUrl: string): Promise<string[]> {
   try {
     const stored = await chrome.storage.session.get(CACHE_KEY);
