@@ -11,6 +11,8 @@ export type FormSnapshot = {
   action_origin: string;
   same_origin: boolean;
   hidden_count: number;
+  has_password: boolean;
+  visible_field_count: number;
 };
 
 export type SubmitButtonSnapshot = {

@@ -127,10 +127,31 @@ function collectForms(pageHref: string, pageOrigin: string): FormSnapshot[] {
         const sameOrigin = actionOrigin === "" || actionOrigin === pageOrigin;
 
         let hiddenCount = 0;
+        let visibleFieldCount = 0;
+        let hasPassword = false;
         try {
           hiddenCount = form.querySelectorAll('input[type="hidden"]').length;
         } catch {
           hiddenCount = 0;
+        }
+        try {
+          const fields = form.querySelectorAll("input, select, textarea");
+          for (let j = 0; j < fields.length; j++) {
+            const field = fields[j];
+            if (!(field instanceof HTMLInputElement) && !(field instanceof HTMLSelectElement) && !(field instanceof HTMLTextAreaElement)) {
+              continue;
+            }
+            if (field instanceof HTMLInputElement && field.type.toLowerCase() === "hidden") {
+              continue;
+            }
+            visibleFieldCount = visibleFieldCount + 1;
+            if (field instanceof HTMLInputElement && field.type.toLowerCase() === "password") {
+              hasPassword = true;
+            }
+          }
+        } catch {
+          visibleFieldCount = 0;
+          hasPassword = false;
         }
 
         let method = "get";
@@ -146,6 +167,8 @@ function collectForms(pageHref: string, pageOrigin: string): FormSnapshot[] {
           action_origin: actionOrigin,
           same_origin: sameOrigin,
           hidden_count: hiddenCount,
+          has_password: hasPassword,
+          visible_field_count: visibleFieldCount,
         });
       } catch {
         // skip form

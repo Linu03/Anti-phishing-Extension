@@ -9,6 +9,8 @@ class FormSnapshotModel(BaseModel):
     action_origin: str = ""
     same_origin: bool = True
     hidden_count: int = 0
+    has_password: bool = False
+    visible_field_count: int = 0
 
 
 class SubmitButtonSnapshotModel(BaseModel):

@@ -10,6 +10,13 @@ from app.layers.page_template.schemas import (
 
 RULE_SENSITIVE_FIELD_COLLECTION = "sensitive_field_collection"
 RULE_FILE_UPLOAD_WITH_LOGIN = "file_upload_with_login"
+RULE_EXCESSIVE_HIDDEN_INPUTS = "excessive_hidden_inputs"
+
+HIDDEN_COUNT_THRESHOLD = 10
+HIDDEN_RATIO_THRESHOLD = 0.55
+
+POINTS_EXCESSIVE_HIDDEN_NEUTRAL = 8
+POINTS_EXCESSIVE_HIDDEN_UNTRUSTED = 10
 
 POINTS_SENSITIVE_ONE_NEUTRAL = 8
 POINTS_SENSITIVE_BOTH_NEUTRAL = 12
@@ -66,6 +73,72 @@ def check_sensitive_field_collection(snapshot: PageSnapshotModel, context: Prior
             rule=RULE_SENSITIVE_FIELD_COLLECTION,
             points=points,
             detail=_sensitive_detail(page_host, has_payment, has_identity),
+            tier="B",
+        )
+    ]
+
+
+def _form_hidden_ratio(hidden_count: int, visible_field_count: int) -> float:
+    total = hidden_count + visible_field_count
+    if total <= 0:
+        return 0.0
+    return hidden_count / total
+
+
+def _login_form_has_excessive_hidden(snapshot: PageSnapshotModel) -> tuple[bool, int]:
+    worst_hidden = 0
+
+    for form in snapshot.forms:
+        if not form.has_password:
+            continue
+
+        hidden_count = form.hidden_count
+        if hidden_count < HIDDEN_COUNT_THRESHOLD:
+            continue
+
+        ratio = _form_hidden_ratio(hidden_count, form.visible_field_count)
+        if form.visible_field_count > 0 and ratio < HIDDEN_RATIO_THRESHOLD:
+            continue
+
+        if hidden_count > worst_hidden:
+            worst_hidden = hidden_count
+
+    if worst_hidden == 0:
+        return False, 0
+
+    return True, worst_hidden
+
+
+def check_excessive_hidden_inputs(
+    snapshot: PageSnapshotModel,
+    context: PriorLayersContextModel,
+) -> list[PageFinding]:
+    if not effective_has_credential_form(snapshot):
+        return []
+
+    trust = resolve_page_trust_context(snapshot, context)
+    if _skip_for_trust(trust):
+        return []
+
+    triggered, hidden_count = _login_form_has_excessive_hidden(snapshot)
+    if not triggered:
+        return []
+
+    page_host = snapshot.page_host.strip() or snapshot.page_url
+    points = (
+        POINTS_EXCESSIVE_HIDDEN_UNTRUSTED
+        if trust == TrustLevel.UNTRUSTED
+        else POINTS_EXCESSIVE_HIDDEN_NEUTRAL
+    )
+
+    return [
+        PageFinding(
+            rule=RULE_EXCESSIVE_HIDDEN_INPUTS,
+            points=points,
+            detail=(
+                f"Login form contains {hidden_count} hidden fields on host "
+                f"'{page_host}' (unusually high for a credential form)."
+            ),
             tier="B",
         )
     ]
