@@ -24,13 +24,10 @@ export type BehavioralFinding = {
   tier?: string;
 };
 
-export type BehavioralGate = "BLOCK" | "REVIEW" | "SAFE";
-
 export type BehavioralStepResult =
   | {
       status: "ok";
       score: number;
-      gate: BehavioralGate;
       findings: BehavioralFinding[];
     }
   | { status: "skipped"; reason: string }

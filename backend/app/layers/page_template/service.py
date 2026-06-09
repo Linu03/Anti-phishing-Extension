@@ -5,7 +5,6 @@ from dataclasses import asdict
 from app.layers.page_template.amplify import apply_amplification
 from app.layers.page_template.constants import MAX_LAYER_SCORE
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.gate import page_safe_from_gate, resolve_gate
 from app.layers.page_template.rules.runner import run_all_rules
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
@@ -37,12 +36,8 @@ def analyze_page_template(
     if score > MAX_LAYER_SCORE:
         score = MAX_LAYER_SCORE
 
-    gate = resolve_gate(findings)
-
     return {
         "score": score,
-        "gate": gate,
-        "page_safe": page_safe_from_gate(gate),
         "credential_context": credential_context,
         "findings": _findings_to_dict_list(findings),
     }

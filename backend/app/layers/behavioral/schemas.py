@@ -37,5 +37,4 @@ class BehavioralFindingResponse(BaseModel):
 
 class BehavioralAnalyzeResponse(BaseModel):
     score: int
-    gate: str
     findings: list[BehavioralFindingResponse]

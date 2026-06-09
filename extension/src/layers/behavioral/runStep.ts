@@ -26,7 +26,6 @@ export async function runBehavioralStep(
     return {
       status: "ok",
       score: 0,
-      gate: "SAFE",
       findings: [],
     };
   }
@@ -39,7 +38,6 @@ export async function runBehavioralStep(
     return {
       status: "ok",
       score: result.score,
-      gate: result.gate,
       findings: result.findings,
     };
   } catch (e) {

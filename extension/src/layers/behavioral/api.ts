@@ -2,7 +2,6 @@ import type { BehaviorDiff, BehavioralContextPayload } from "./types";
 
 export type ServerBehavioralResponse = {
   score: number;
-  gate: "BLOCK" | "REVIEW" | "SAFE";
   findings: Array<{
     rule: string;
     points: number;

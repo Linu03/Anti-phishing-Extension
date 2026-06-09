@@ -7,8 +7,6 @@ export type ServerBrandIdsResponse = {
 
 export type ServerPageTemplateResponse = {
   score: number;
-  gate: "BLOCK" | "REVIEW" | "SAFE" | "INFO";
-  page_safe: boolean;
   credential_context: boolean;
   findings: Array<{
     rule: string;

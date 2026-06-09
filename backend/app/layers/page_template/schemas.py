@@ -82,8 +82,6 @@ class PageFindingResponse(BaseModel):
 
 class PageTemplateAnalyzeResponse(BaseModel):
     score: int
-    gate: str
-    page_safe: bool
     credential_context: bool
     findings: list[PageFindingResponse]
 

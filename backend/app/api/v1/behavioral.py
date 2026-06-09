@@ -20,6 +20,5 @@ async def behavioral_analyze(body: BehavioralAnalyzeRequest) -> BehavioralAnalyz
 
     return BehavioralAnalyzeResponse(
         score=result["score"],
-        gate=result["gate"],
         findings=result["findings"],
     )

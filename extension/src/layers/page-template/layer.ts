@@ -32,9 +32,8 @@ function buildOkDetail(step: Extract<PageTemplateStepResult, { status: "ok" }>):
     return collectionFailedUserMessage(step.score);
   }
 
-  const gatePrefix = `Page gate: ${step.gate}.`;
   if (step.findings.length === 0) {
-    return `${gatePrefix} No suspicious page patterns.`;
+    return "No suspicious page patterns.";
   }
 
   const lines: string[] = [];
@@ -46,7 +45,7 @@ function buildOkDetail(step: Extract<PageTemplateStepResult, { status: "ok" }>):
     lines.push(finding.detail);
   }
 
-  return `${gatePrefix} ${lines.join(" ")}`;
+  return lines.join(" ");
 }
 
 export function buildPageTemplateLayer(step: PageTemplateStepResult): LayerSignal {

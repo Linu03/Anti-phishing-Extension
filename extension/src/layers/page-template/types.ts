@@ -5,8 +5,6 @@ export type PageTemplateFinding = {
   tier?: string;
 };
 
-export type PageTemplateGate = "BLOCK" | "REVIEW" | "SAFE" | "INFO";
-
 export type FormSnapshot = {
   method: string;
   action: string;
@@ -76,8 +74,6 @@ export type PageTemplateStepResult =
   | {
       status: "ok";
       score: number;
-      gate: PageTemplateGate;
-      page_safe: boolean;
       credential_context: boolean;
       findings: PageTemplateFinding[];
     }
