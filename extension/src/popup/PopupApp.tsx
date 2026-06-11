@@ -1,11 +1,15 @@
-import { useEffect, useState } from "react";
-import { AlertTriangle, ListPlus, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { AlertTriangle, ListPlus, ScanLine, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
 import { loadActiveTabPhishingAnalysis } from "../layers/analysis/loadActiveTabAnalysis";
+import { loadActiveTabPreview, type TabPreview } from "../layers/analysis/loadActiveTabPreview";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import type { AnalysisSnapshot, LayerSignal, Verdict } from "../layers/types";
 import { scoreHue, verdictFromScore, verdictLabel } from "../layers/verdict";
+import { getUserSettings } from "../settings/storage";
+import type { ScanMode } from "../settings/types";
 import { addWhitelist, isUrlWhitelisted, removeWhitelist } from "../layers/whitelist/storage";
 import { addPersonalBlock, isUrlPersonallyBlocked } from "../user-lists/personalBlocklist";
+import { PopupSlideShell } from "./PopupSlideShell";
 
 function VerdictBadge({ verdict }: { verdict: Verdict }) {
   const base = "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-sans text-xs font-semibold";
@@ -86,7 +90,40 @@ function LayerCard({ layer }: { layer: LayerSignal }) {
   );
 }
 
+type ScanPhase = "idle" | "loading" | "ready";
+
+function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview | null; busy: boolean; onScan: () => void }) {
+  return (
+    <div className="space-y-3 px-4 py-4">
+      {tabPreview ? (
+        <div className="space-y-1">
+          <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={tabPreview.title || undefined}>
+            {tabPreview.title.trim() || "Untitled tab"}
+          </p>
+          <p className="line-clamp-2 break-all font-sans text-[11px] leading-snug text-ink-muted" title={tabPreview.url}>
+            {tabPreview.url}
+          </p>
+        </div>
+      ) : null}
+      <p className="font-sans text-xs leading-snug text-ink-muted">Manual scan is on. Press the button below to analyze this tab.</p>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onScan}
+        className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <ScanLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+        {busy ? "Scanning…" : "Scan this page"}
+      </button>
+    </div>
+  );
+}
+
 export function PopupApp() {
+  const [showSettings, setShowSettings] = useState(false);
+  const [scanMode, setScanMode] = useState<ScanMode>("manual");
+  const [scanPhase, setScanPhase] = useState<ScanPhase>("idle");
+  const [tabPreview, setTabPreview] = useState<TabPreview | null>(null);
   const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
   const [onPersonalList, setOnPersonalList] = useState(false);
   const [onWhitelist, setOnWhitelist] = useState(false);
@@ -95,28 +132,90 @@ export function PopupApp() {
   const [personalHint, setPersonalHint] = useState<string | null>(null);
   const [whitelistHint, setWhitelistHint] = useState<string | null>(null);
 
+  const runScan = useCallback(async () => {
+    setScanPhase("loading");
+    try {
+      const data = await loadActiveTabPhishingAnalysis();
+      setSnapshot(data);
+      setScanPhase("ready");
+    } catch {
+      setSnapshot(null);
+      const preview = await loadActiveTabPreview();
+      setTabPreview(preview);
+      setScanPhase("idle");
+    }
+  }, []);
+
   useEffect(() => {
     let stillMounted = true;
 
-    async function load() {
-      try {
-        const data = await loadActiveTabPhishingAnalysis();
-        if (stillMounted) {
-          setSnapshot(data);
+    async function init() {
+      const settings = await getUserSettings();
+      if (!stillMounted) {
+        return;
+      }
+      setScanMode(settings.scanMode);
+      if (settings.scanMode === "auto_when_ready") {
+        setScanPhase("loading");
+        try {
+          const data = await loadActiveTabPhishingAnalysis();
+          if (stillMounted) {
+            setSnapshot(data);
+            setScanPhase("ready");
+          }
+        } catch {
+          if (stillMounted) {
+            setSnapshot(null);
+            const preview = await loadActiveTabPreview();
+            setTabPreview(preview);
+            setScanPhase("idle");
+          }
         }
-      } catch {
-        if (stillMounted) {
-          setSnapshot(null);
-        }
+        return;
+      }
+      const preview = await loadActiveTabPreview();
+      if (stillMounted) {
+        setTabPreview(preview);
+        setScanPhase("idle");
       }
     }
 
-    void load();
+    void init();
 
     return () => {
       stillMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    function onStorageChange(changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) {
+      if (areaName !== "local" || !changes.userSettings) {
+        return;
+      }
+      const raw = changes.userSettings.newValue;
+      if (raw === undefined || raw === null || typeof raw !== "object") {
+        return;
+      }
+      const nextMode = (raw as { scanMode?: ScanMode }).scanMode;
+      if (nextMode !== "manual" && nextMode !== "auto_when_ready") {
+        return;
+      }
+      setScanMode(nextMode);
+      if (nextMode === "auto_when_ready") {
+        void runScan();
+        return;
+      }
+      setSnapshot(null);
+      setScanPhase("idle");
+      void loadActiveTabPreview().then((preview) => {
+        setTabPreview(preview);
+      });
+    }
+    chrome.storage.onChanged.addListener(onStorageChange);
+    return () => {
+      chrome.storage.onChanged.removeListener(onStorageChange);
+    };
+  }, [runScan]);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -256,12 +355,49 @@ export function PopupApp() {
     }
   }
 
+  const shellProps = {
+    showSettings,
+    onOpenSettings: () => {
+      setShowSettings(true);
+    },
+    onCloseSettings: () => {
+      setShowSettings(false);
+    },
+  };
+
+  if (scanPhase === "loading") {
+    return (
+      <PopupSlideShell {...shellProps}>
+        <div className="flex items-center gap-3 bg-surface-elevated/50 px-4 py-3">
+          <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
+          <p className="font-sans text-sm text-ink-muted">Checking this tab…</p>
+        </div>
+      </PopupSlideShell>
+    );
+  }
+
+  if (scanMode === "manual" && scanPhase === "idle" && snapshot === null) {
+    return (
+      <PopupSlideShell {...shellProps}>
+        <ManualScanPrompt
+          tabPreview={tabPreview}
+          busy={false}
+          onScan={() => {
+            void runScan();
+          }}
+        />
+      </PopupSlideShell>
+    );
+  }
+
   if (snapshot === null) {
     return (
-      <div className="flex w-[360px] items-center gap-3 border border-surface-border bg-surface-elevated/50 px-4 py-3">
-        <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
-        <p className="font-sans text-sm text-ink-muted">Checking this tab…</p>
-      </div>
+      <PopupSlideShell {...shellProps}>
+        <div className="flex items-center gap-3 bg-surface-elevated/50 px-4 py-3">
+          <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
+          <p className="font-sans text-sm text-ink-muted">Could not load analysis.</p>
+        </div>
+      </PopupSlideShell>
     );
   }
 
@@ -274,19 +410,21 @@ export function PopupApp() {
   const whitelistDisabled = whitelistBusy;
 
   return (
-    <div className="w-[360px] border border-surface-border bg-surface shadow-sm">
-      <div className="border-b border-surface-border bg-surface-elevated/60 px-4 py-2.5">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-surface-border bg-surface">
-            <Shield className="h-4 w-4 text-accent-line" strokeWidth={1.5} />
-          </div>
-          <div className="min-w-0 flex-1">
-            <h1 className="font-serif text-base font-semibold leading-tight text-ink">Anti-Phishing Shield</h1>
-          </div>
-        </div>
-      </div>
-
+    <PopupSlideShell {...shellProps}>
       <div className="space-y-2 px-4 py-2.5">
+        {scanMode === "manual" ? (
+          <button
+            type="button"
+            onClick={() => {
+              void runScan();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <ScanLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+            Scan again
+          </button>
+        ) : null}
+
         <div className="flex gap-3">
           <div className="min-w-0 flex-1 space-y-1">
             <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={snapshot.pageTitle || undefined}>
@@ -369,6 +507,6 @@ export function PopupApp() {
           </div>
         ) : null}
       </div>
-    </div>
+    </PopupSlideShell>
   );
 }
