@@ -1,6 +1,8 @@
 import { runBlocklistStep } from "../blacklist/runStep";
+import { getBehaviorDiffForTab } from "../behavioral/behaviorDiffStorage";
 import { runBehavioralStep } from "../behavioral/runStep";
 import type { BehavioralContextPayload } from "../behavioral/types";
+import { hostFromInput } from "../urlHost";
 import { runPageTemplateStep } from "../page-template/runStep";
 import { runTlsStep } from "../tls/runStep";
 import type { AnalysisSnapshot } from "../types";
@@ -9,10 +11,10 @@ import { runWhitelistStep } from "../whitelist/runStep";
 import { composePhishingAnalysis } from "./composePhishingAnalysis";
 import { buildPriorLayersContext } from "./priorLayersContext";
 
-export async function runFullTabAnalysis(
-  pageUrl: string,
-  pageTitle: string,
-): Promise<AnalysisSnapshot> {
+export async function runFullTabAnalysis(pageUrl: string, pageTitle: string): Promise<AnalysisSnapshot> {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const activeTabId = tabs[0]?.id;
+
   const whitelistStep = await runWhitelistStep(pageUrl);
   const blocklistStep = await runBlocklistStep(pageUrl);
   const urlAnalyzerStep = await runUrlAnalyzerStep(pageUrl);
@@ -28,7 +30,7 @@ export async function runFullTabAnalysis(
   const pageTemplateStep = await runPageTemplateStep(pageUrl, priorContext);
 
   const behavioralContext: BehavioralContextPayload = {
-    page_host: "",
+    page_host: hostFromInput(pageUrl),
     has_credential_form: false,
     whitelist_trusted: priorContext.whitelist_trusted,
     blocklist_listed: priorContext.blocklist_listed,
@@ -44,7 +46,12 @@ export async function runFullTabAnalysis(
     behavioralContext.page_template_rules = pageTemplateStep.findings.map((f) => f.rule);
   }
 
-  const behavioralStep = await runBehavioralStep(pageUrl, null, behavioralContext);
+  let behaviorDiff = null;
+  if (activeTabId !== undefined) {
+    behaviorDiff = await getBehaviorDiffForTab(activeTabId, pageUrl);
+  }
+
+  const behavioralStep = await runBehavioralStep(pageUrl, behaviorDiff, behavioralContext);
 
   let urlForUi = pageUrl.trim();
   if (urlForUi === "") {

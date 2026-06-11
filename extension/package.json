@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "build:collector": "vite build --config vite.collector.config.ts",
+    "build:behavior": "vite build --config vite.behavior.config.ts",
     "dev": "npm run build && vite build --watch",
-    "build": "vite build && npm run build:collector",
+    "build": "vite build && npm run build:collector && npm run build:behavior",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview"
   },

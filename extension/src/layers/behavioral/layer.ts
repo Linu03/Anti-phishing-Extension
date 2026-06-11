@@ -17,7 +17,7 @@ function clampContribution(score: number): number {
 
 export function buildBehavioralLayer(step: BehavioralStepResult): LayerSignal {
   if (step.status === "ok") {
-    let detail = BEHAVIORAL_USER_MESSAGES.noBehavioralIssues;
+    let detail: string = BEHAVIORAL_USER_MESSAGES.noBehavioralIssues;
     if (step.findings.length > 0) {
       const lines: string[] = [];
       for (const finding of step.findings) {

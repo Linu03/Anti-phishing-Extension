@@ -1,17 +1,10 @@
 import type { PageSnapshot } from "./types";
 
 type CollectorGlobal = {
-  __AFS_COLLECT_PAGE_SNAPSHOT__?: (
-    brandIds: string[],
-    scriptFpOrigins: string[],
-  ) => PageSnapshot;
+  __AFS_COLLECT_PAGE_SNAPSHOT__?: (brandIds: string[], scriptFpOrigins: string[]) => PageSnapshot;
 };
 
-export async function collectPageSnapshotFromTab(
-  tabId: number,
-  brandIds: string[],
-  scriptFpOrigins: string[],
-): Promise<PageSnapshot | null> {
+export async function collectPageSnapshotFromTab(tabId: number, brandIds: string[], scriptFpOrigins: string[]): Promise<PageSnapshot | null> {
   try {
     await chrome.scripting.executeScript({
       target: { tabId },

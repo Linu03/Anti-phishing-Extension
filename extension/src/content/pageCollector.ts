@@ -339,9 +339,7 @@ function parseMetaRefresh(): { target: string; delaySec: number | null } {
   }
 }
 
-function collectBrands(
-  brandIds: string[],
-): { primary_brand_hits: string[]; brand_hits: string[] } {
+function collectBrands(brandIds: string[]): { primary_brand_hits: string[]; brand_hits: string[] } {
   return matchBrandsFromPage(
     brandIds,
     () => document.title,
@@ -497,11 +495,7 @@ function emptyResourceCounts(): ResourceCounts {
   };
 }
 
-function collectPageResources(
-  pageHref: string,
-  pageHost: string,
-  scriptFpOrigins: string[],
-): ResourceCounts {
+function collectPageResources(pageHref: string, pageHost: string, scriptFpOrigins: string[]): ResourceCounts {
   if (pageHost === "") {
     return emptyResourceCounts();
   }
@@ -659,10 +653,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
 }
 
 type CollectorGlobal = {
-  __AFS_COLLECT_PAGE_SNAPSHOT__?: (
-    brandIds: string[],
-    scriptFpOrigins: string[],
-  ) => PageSnapshot;
+  __AFS_COLLECT_PAGE_SNAPSHOT__?: (brandIds: string[], scriptFpOrigins: string[]) => PageSnapshot;
 };
 
 (globalThis as CollectorGlobal).__AFS_COLLECT_PAGE_SNAPSHOT__ = collectPageSnapshot;

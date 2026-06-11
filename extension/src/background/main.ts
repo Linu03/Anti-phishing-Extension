@@ -1,5 +1,7 @@
 import { fetchBlocklistCheck } from "../layers/blacklist/api";
 import { getApiBaseUrl } from "../layers/apiBase";
+import { clearBehaviorDiffForTab } from "../layers/behavioral/behaviorDiffStorage";
+import { startBehaviorObserverForTab } from "../layers/behavioral/startObserverForTab";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
 
@@ -78,6 +80,7 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
   if (changeInfo.status === "loading") {
     warnedUrlByTabId.delete(tabId);
+    void clearBehaviorDiffForTab(tabId);
   }
 });
 
@@ -100,6 +103,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   }
 
   void maybeShowWarningForTab(tabId, pageUrl);
+  void startBehaviorObserverForTab(tabId, pageUrl);
 });
 
 async function maybeShowWarningForTab(tabId: number, pageUrl: string) {
