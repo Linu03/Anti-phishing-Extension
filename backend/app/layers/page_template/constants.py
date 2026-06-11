@@ -1,3 +1,9 @@
+from __future__ import annotations
+
+from datetime import datetime, timezone
+from pathlib import Path
+
+_CONSTANTS_PATH = Path(__file__)
 
 IDP_SUBMIT_ORIGINS: frozenset[str] = frozenset(
     {
@@ -37,3 +43,18 @@ IFRAME_TRUSTED_ORIGINS: frozenset[str] = frozenset(
 IFRAME_MAX_TOTAL_POINTS = 20
 
 MAX_LAYER_SCORE = 60
+
+
+def get_script_fp_origins_catalog() -> tuple[list[str], str]:
+    """CDN/widget hosts excluded from external resource ratio (client collector)."""
+    origins = sorted(SCRIPT_FP_ORIGINS)
+
+    try:
+        mtime = _CONSTANTS_PATH.stat().st_mtime
+        version = datetime.fromtimestamp(mtime, tz=timezone.utc).strftime(
+            "%Y-%m-%dT%H:%M:%SZ"
+        )
+    except OSError:
+        version = "unknown"
+
+    return origins, version

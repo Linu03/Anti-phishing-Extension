@@ -5,6 +5,11 @@ export type ServerBrandIdsResponse = {
   version: string;
 };
 
+export type ServerScriptFpOriginsResponse = {
+  script_fp_origins: string[];
+  version: string;
+};
+
 export type ServerPageTemplateResponse = {
   score: number;
   credential_context: boolean;
@@ -25,6 +30,20 @@ export async function fetchBrandIds(apiBaseUrl: string): Promise<ServerBrandIdsR
   }
 
   const data: ServerBrandIdsResponse = await response.json();
+  return data;
+}
+
+export async function fetchScriptFpOrigins(
+  apiBaseUrl: string,
+): Promise<ServerScriptFpOriginsResponse> {
+  const url = `${apiBaseUrl}/v1/page-template/script-fp-origins`;
+  const response = await fetch(url);
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  const data: ServerScriptFpOriginsResponse = await response.json();
   return data;
 }
 

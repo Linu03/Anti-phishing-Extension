@@ -2,6 +2,7 @@ import { getApiBaseUrl } from "../apiBase";
 import { isRestrictedPageUrl } from "../restrictedPageUrl";
 import { fetchPageTemplateAnalyze } from "./api";
 import { getCachedBrandIds } from "./brandIdsCache";
+import { getCachedScriptFpOrigins } from "./scriptFpOriginsCache";
 import { collectPageSnapshotFromTab } from "./collectFromTab";
 import { buildEmptySnapshot } from "./emptySnapshot";
 import { sanitizedTabUrl } from "./urlSanitize";
@@ -27,8 +28,9 @@ export async function runPageTemplateStep(
 
   const baseUrl = getApiBaseUrl();
   const brandIds = await getCachedBrandIds(baseUrl);
+  const scriptFpOrigins = await getCachedScriptFpOrigins(baseUrl);
 
-  let snapshot = await collectPageSnapshotFromTab(tabId, brandIds);
+  let snapshot = await collectPageSnapshotFromTab(tabId, brandIds, scriptFpOrigins);
   if (snapshot === null) {
     snapshot = buildEmptySnapshot(pageUrl, "inject_failed");
   }

@@ -1,12 +1,16 @@
 import type { PageSnapshot } from "./types";
 
 type CollectorGlobal = {
-  __AFS_COLLECT_PAGE_SNAPSHOT__?: (brandIds: string[]) => PageSnapshot;
+  __AFS_COLLECT_PAGE_SNAPSHOT__?: (
+    brandIds: string[],
+    scriptFpOrigins: string[],
+  ) => PageSnapshot;
 };
 
 export async function collectPageSnapshotFromTab(
   tabId: number,
   brandIds: string[],
+  scriptFpOrigins: string[],
 ): Promise<PageSnapshot | null> {
   try {
     await chrome.scripting.executeScript({
@@ -20,14 +24,14 @@ export async function collectPageSnapshotFromTab(
   try {
     const results = await chrome.scripting.executeScript({
       target: { tabId },
-      func: (ids: string[]) => {
+      func: (ids: string[], fpOrigins: string[]) => {
         const globalRef = globalThis as CollectorGlobal;
         if (!globalRef.__AFS_COLLECT_PAGE_SNAPSHOT__) {
           return null;
         }
-        return globalRef.__AFS_COLLECT_PAGE_SNAPSHOT__(ids);
+        return globalRef.__AFS_COLLECT_PAGE_SNAPSHOT__(ids, fpOrigins);
       },
-      args: [brandIds],
+      args: [brandIds, scriptFpOrigins],
     });
 
     if (!results || results.length === 0) {

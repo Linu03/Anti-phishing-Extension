@@ -17,6 +17,7 @@ import type {
 const MAX_FORMS = 40;
 const MAX_IFRAMES = 20;
 const MAX_IMGS = 60;
+const MAX_RESOURCE_NODES = 80;
 const HIDDEN_IFRAME_MAX_PX = 2;
 const HIDDEN_PASSWORD_MAX_PX = 2;
 
@@ -396,7 +397,151 @@ function pageIsFramed(): boolean {
   }
 }
 
-export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
+type ResourceCounts = {
+  total_resource_count: number;
+  external_resource_count: number;
+  external_resource_ratio: number;
+  external_script_origins: string[];
+};
+
+function registeredDomain(host: string): string {
+  const value = host.trim().toLowerCase();
+  if (value === "") {
+    return "";
+  }
+  const parts = value.split(".").filter((part) => part.length > 0);
+  if (parts.length < 2) {
+    return value;
+  }
+  return `${parts[parts.length - 2]}.${parts[parts.length - 1]}`;
+}
+
+function buildScriptFpOriginSet(origins: string[]): Set<string> {
+  const set = new Set<string>();
+  for (let i = 0; i < origins.length; i++) {
+    const value = origins[i].trim().toLowerCase();
+    if (value !== "") {
+      set.add(value);
+    }
+  }
+  return set;
+}
+
+function isScriptFpOrigin(host: string, fpOrigins: Set<string>): boolean {
+  const value = host.trim().toLowerCase();
+  if (value === "") {
+    return false;
+  }
+  return fpOrigins.has(value);
+}
+
+function isSameSiteHost(pageHost: string, resourceHost: string): boolean {
+  if (pageHost === "" || resourceHost === "") {
+    return false;
+  }
+  if (pageHost === resourceHost) {
+    return true;
+  }
+  return registeredDomain(pageHost) === registeredDomain(resourceHost);
+}
+
+function collectResourceUrls(): string[] {
+  const urls: string[] = [];
+
+  try {
+    const scripts = document.querySelectorAll("script[src]");
+    for (let i = 0; i < scripts.length && urls.length < MAX_RESOURCE_NODES; i++) {
+      const src = scripts[i].getAttribute("src");
+      if (src !== null && src.trim() !== "") {
+        urls.push(src);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const links = document.querySelectorAll('link[rel="stylesheet"][href]');
+    for (let i = 0; i < links.length && urls.length < MAX_RESOURCE_NODES; i++) {
+      const href = links[i].getAttribute("href");
+      if (href !== null && href.trim() !== "") {
+        urls.push(href);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const imgs = document.querySelectorAll("img[src]");
+    const imgLimit = imgs.length < MAX_IMGS ? imgs.length : MAX_IMGS;
+    for (let i = 0; i < imgLimit && urls.length < MAX_RESOURCE_NODES; i++) {
+      const src = imgs[i].getAttribute("src");
+      if (src !== null && src.trim() !== "") {
+        urls.push(src);
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return urls;
+}
+
+function emptyResourceCounts(): ResourceCounts {
+  return {
+    total_resource_count: 0,
+    external_resource_count: 0,
+    external_resource_ratio: 0,
+    external_script_origins: [],
+  };
+}
+
+function collectPageResources(
+  pageHref: string,
+  pageHost: string,
+  scriptFpOrigins: string[],
+): ResourceCounts {
+  if (pageHost === "") {
+    return emptyResourceCounts();
+  }
+
+  const fpOrigins = buildScriptFpOriginSet(scriptFpOrigins);
+  const urls = collectResourceUrls();
+  let total = 0;
+  let external = 0;
+  const externalHosts = new Set<string>();
+
+  for (let i = 0; i < urls.length; i++) {
+    const host = safeHostname(urls[i], pageHref);
+    if (host === "") {
+      continue;
+    }
+    if (isScriptFpOrigin(host, fpOrigins)) {
+      continue;
+    }
+
+    total = total + 1;
+    if (!isSameSiteHost(pageHost, host)) {
+      external = external + 1;
+      externalHosts.add(host);
+    }
+  }
+
+  let ratio = 0;
+  if (total > 0) {
+    ratio = external / total;
+  }
+
+  return {
+    total_resource_count: total,
+    external_resource_count: external,
+    external_resource_ratio: ratio,
+    external_script_origins: Array.from(externalHosts),
+  };
+}
+
+export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[]): PageSnapshot {
   const pageHref = window.location.href;
   const pageOrigin = sanitizedTabUrl(pageHref);
   const pageHost = safeHostname(pageHref);
@@ -412,6 +557,7 @@ export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
   let brandPrimary: string[] = [];
   let brandAll: string[] = [];
   let hiddenInputCount = 0;
+  let resourceCounts = emptyResourceCounts();
 
   try {
     forms = collectForms(pageHref, pageOrigin);
@@ -477,6 +623,12 @@ export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
     hiddenInputCount = 0;
   }
 
+  try {
+    resourceCounts = collectPageResources(pageHref, pageHost, scriptFpOrigins);
+  } catch {
+    resourceCounts = emptyResourceCounts();
+  }
+
   const hasCredentialForm =
     fieldProfile.has_password || fieldProfile.has_otp;
 
@@ -494,7 +646,10 @@ export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
     meta_refresh_delay_sec: metaDelay,
     base_href_origin: baseOrigin,
     canonical_host: canonicalHost,
-    external_script_origins: [],
+    external_script_origins: resourceCounts.external_script_origins,
+    total_resource_count: resourceCounts.total_resource_count,
+    external_resource_count: resourceCounts.external_resource_count,
+    external_resource_ratio: resourceCounts.external_resource_ratio,
     brand_hits: brandAll,
     primary_brand_hits: brandPrimary,
     hidden_input_count: hiddenInputCount,
@@ -504,7 +659,10 @@ export function collectPageSnapshot(brandIds: string[]): PageSnapshot {
 }
 
 type CollectorGlobal = {
-  __AFS_COLLECT_PAGE_SNAPSHOT__?: (brandIds: string[]) => PageSnapshot;
+  __AFS_COLLECT_PAGE_SNAPSHOT__?: (
+    brandIds: string[],
+    scriptFpOrigins: string[],
+  ) => PageSnapshot;
 };
 
 (globalThis as CollectorGlobal).__AFS_COLLECT_PAGE_SNAPSHOT__ = collectPageSnapshot;

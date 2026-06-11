@@ -53,6 +53,9 @@ export type PageSnapshot = {
   base_href_origin: string;
   canonical_host: string;
   external_script_origins: string[];
+  total_resource_count: number;
+  external_resource_count: number;
+  external_resource_ratio: number;
   brand_hits: string[];
   primary_brand_hits: string[];
   hidden_input_count: number;

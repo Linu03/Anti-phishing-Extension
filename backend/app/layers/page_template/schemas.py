@@ -51,6 +51,9 @@ class PageSnapshotModel(BaseModel):
     base_href_origin: str = ""
     canonical_host: str = ""
     external_script_origins: list[str] = Field(default_factory=list)
+    total_resource_count: int = 0
+    external_resource_count: int = 0
+    external_resource_ratio: float = 0.0
     brand_hits: list[str] = Field(default_factory=list)
     primary_brand_hits: list[str] = Field(
         default_factory=list,
@@ -98,4 +101,15 @@ class BrandIdsResponse(BaseModel):
     version: str = Field(
         ...,
         description="Registry version (source file mtime UTC).",
+    )
+
+
+class ScriptFpOriginsResponse(BaseModel):
+    script_fp_origins: list[str] = Field(
+        default_factory=list,
+        description="Hosts excluded from external resource ratio in the page collector.",
+    )
+    version: str = Field(
+        ...,
+        description="Catalog version (constants file mtime UTC).",
     )
