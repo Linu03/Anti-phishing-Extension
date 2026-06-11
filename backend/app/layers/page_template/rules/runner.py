@@ -13,6 +13,7 @@ from app.layers.page_template.rules.forms import (
 from app.layers.page_template.rules.fields import (
     check_excessive_hidden_inputs,
     check_file_upload_with_login,
+    check_hidden_password_field,
     check_sensitive_field_collection,
 )
 from app.layers.page_template.rules.iframes import check_iframe_signals
@@ -50,6 +51,7 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_sensitive_field_collection,
     check_file_upload_with_login,
     check_excessive_hidden_inputs,
+    check_hidden_password_field,
     check_login_page_is_framed,
 ]
 

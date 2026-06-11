@@ -29,6 +29,7 @@ export type IframeSnapshot = {
 
 export type FieldProfile = {
   has_password: boolean;
+  has_hidden_password: boolean;
   has_email: boolean;
   has_tel: boolean;
   has_file: boolean;

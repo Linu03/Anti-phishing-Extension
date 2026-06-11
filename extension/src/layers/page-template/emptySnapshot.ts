@@ -5,6 +5,7 @@ import { hostFromInput } from "../urlHost";
 export function emptyFieldProfile(): FieldProfile {
   return {
     has_password: false,
+    has_hidden_password: false,
     has_email: false,
     has_tel: false,
     has_file: false,

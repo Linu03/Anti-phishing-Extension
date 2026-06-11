@@ -27,6 +27,7 @@ class IframeSnapshotModel(BaseModel):
 
 class FieldProfileModel(BaseModel):
     has_password: bool = False
+    has_hidden_password: bool = False
     has_email: bool = False
     has_tel: bool = False
     has_file: bool = False

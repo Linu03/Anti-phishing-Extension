@@ -18,6 +18,7 @@ const MAX_FORMS = 40;
 const MAX_IFRAMES = 20;
 const MAX_IMGS = 60;
 const HIDDEN_IFRAME_MAX_PX = 2;
+const HIDDEN_PASSWORD_MAX_PX = 2;
 
 const PAYMENT_NAME_HINTS = [
   "cardnumber",
@@ -47,6 +48,37 @@ function attrLower(element: Element, name: string): string {
   }
 }
 
+function passwordInputIsVisuallyHidden(input: HTMLInputElement): boolean {
+  try {
+    const style = window.getComputedStyle(input);
+    if (style.display === "none" || style.visibility === "hidden") {
+      return true;
+    }
+
+    const opacity = Number.parseFloat(style.opacity);
+    if (!Number.isNaN(opacity) && opacity === 0) {
+      return true;
+    }
+
+    const width = input.offsetWidth;
+    const height = input.offsetHeight;
+    if (width <= HIDDEN_PASSWORD_MAX_PX && height <= HIDDEN_PASSWORD_MAX_PX) {
+      return true;
+    }
+
+    const rect = input.getBoundingClientRect();
+    const viewWidth = window.innerWidth;
+    const viewHeight = window.innerHeight;
+    if (rect.right < 0 || rect.bottom < 0 || rect.left > viewWidth || rect.top > viewHeight) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+}
+
 function collectFieldProfile(): FieldProfile {
   const profile = emptyFieldProfile();
 
@@ -67,6 +99,9 @@ function collectFieldProfile(): FieldProfile {
 
       if (type === "password") {
         profile.has_password = true;
+        if (el instanceof HTMLInputElement && passwordInputIsVisuallyHidden(el)) {
+          profile.has_hidden_password = true;
+        }
       }
       if (type === "email" || autocomplete.includes("email")) {
         profile.has_email = true;

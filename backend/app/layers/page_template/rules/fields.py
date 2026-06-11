@@ -11,6 +11,7 @@ from app.layers.page_template.schemas import (
 RULE_SENSITIVE_FIELD_COLLECTION = "sensitive_field_collection"
 RULE_FILE_UPLOAD_WITH_LOGIN = "file_upload_with_login"
 RULE_EXCESSIVE_HIDDEN_INPUTS = "excessive_hidden_inputs"
+RULE_HIDDEN_PASSWORD_FIELD = "hidden_password_field"
 
 HIDDEN_COUNT_THRESHOLD = 10
 HIDDEN_RATIO_THRESHOLD = 0.55
@@ -25,6 +26,9 @@ POINTS_SENSITIVE_BOTH_UNTRUSTED = 18
 
 POINTS_FILE_UPLOAD_NEUTRAL = 8
 POINTS_FILE_UPLOAD_UNTRUSTED = 12
+
+POINTS_HIDDEN_PASSWORD_NEUTRAL = 10
+POINTS_HIDDEN_PASSWORD_UNTRUSTED = 12
 
 
 def _skip_for_trust(trust: TrustLevel) -> bool:
@@ -138,6 +142,40 @@ def check_excessive_hidden_inputs(
             detail=(
                 f"Login form contains {hidden_count} hidden fields on host "
                 f"'{page_host}' (unusually high for a credential form)."
+            ),
+            tier="B",
+        )
+    ]
+
+
+def check_hidden_password_field(
+    snapshot: PageSnapshotModel,
+    context: PriorLayersContextModel,
+) -> list[PageFinding]:
+    if not effective_has_credential_form(snapshot):
+        return []
+
+    if not snapshot.field_profile.has_hidden_password:
+        return []
+
+    trust = resolve_page_trust_context(snapshot, context)
+    if _skip_for_trust(trust):
+        return []
+
+    page_host = snapshot.page_host.strip() or snapshot.page_url
+    points = (
+        POINTS_HIDDEN_PASSWORD_UNTRUSTED
+        if trust == TrustLevel.UNTRUSTED
+        else POINTS_HIDDEN_PASSWORD_NEUTRAL
+    )
+
+    return [
+        PageFinding(
+            rule=RULE_HIDDEN_PASSWORD_FIELD,
+            points=points,
+            detail=(
+                f"Login page contains a password field hidden from view on host "
+                f"'{page_host}' (CSS hide, zero size, or off-screen)."
             ),
             tier="B",
         )
