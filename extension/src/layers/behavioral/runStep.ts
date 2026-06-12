@@ -16,11 +16,18 @@ export async function runBehavioralStep(
     return { status: "skipped", reason: "no_diff" };
   }
 
+  const hasRedirectSignal =
+    diff.redirect_ms > 0 &&
+    diff.start_host !== "" &&
+    diff.end_host !== "" &&
+    diff.start_host !== diff.end_host;
+
   const nothingChanged =
     !diff.forms_appeared &&
     !diff.password_inputs_increased &&
     !diff.action_origin_changed &&
-    !diff.brand_hits_increased;
+    !diff.brand_hits_increased &&
+    !hasRedirectSignal;
 
   if (nothingChanged) {
     return {

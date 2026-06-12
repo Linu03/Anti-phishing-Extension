@@ -6,6 +6,13 @@ import {
   storeBehaviorDiffForTab,
   type StoredBehaviorDiff,
 } from "../layers/behavioral/behaviorDiffStorage";
+import { RAPID_REDIRECT_MS } from "../layers/behavioral/constants";
+import {
+  clearRedirectEvidenceForTab,
+  MSG_STORE_REDIRECT_EVIDENCE,
+  storeRedirectEvidence,
+  type RedirectEvidence,
+} from "../layers/behavioral/redirectEvidence";
 import { startBehaviorObserverForTab } from "../layers/behavioral/startObserverForTab";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
@@ -14,6 +21,36 @@ const MSG_GO_BACK = "AFS_GO_BACK";
 const MSG_REMOVE_PERSONAL = "AFS_REMOVE_PERSONAL";
 
 const warnedUrlByTabId = new Map<number, string>();
+
+type TabLoadMeta = {
+  url: string;
+  host: string;
+  loadedAt: number;
+};
+
+const tabLoadMeta = new Map<number, TabLoadMeta>();
+
+function hostFromHttpUrl(url: string): string {
+  try {
+    return new URL(url).hostname.toLowerCase();
+  } catch {
+    return "";
+  }
+}
+
+function isRedirectEvidence(value: unknown): value is RedirectEvidence {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const record = value as RedirectEvidence;
+  return (
+    typeof record.pageUrl === "string" &&
+    typeof record.start_host === "string" &&
+    typeof record.end_host === "string" &&
+    typeof record.redirect_ms === "number" &&
+    typeof record.updatedAt === "number"
+  );
+}
 
 void chrome.storage.session
   .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
@@ -48,6 +85,20 @@ async function leaveBlockedPage(tabId: number): Promise<void> {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === MSG_STORE_REDIRECT_EVIDENCE) {
+    const tabId = msg.tabId;
+    const evidence = msg.evidence;
+    if (typeof tabId !== "number" || !isRedirectEvidence(evidence)) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void (async () => {
+      await storeRedirectEvidence(tabId, evidence);
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   if (msg?.type === MSG_STORE_BEHAVIOR_DIFF) {
     const tabId = msg.tabId;
     const record = msg.record;
@@ -114,12 +165,45 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
 chrome.tabs.onRemoved.addListener((tabId) => {
   warnedUrlByTabId.delete(tabId);
+  tabLoadMeta.delete(tabId);
+  void clearRedirectEvidenceForTab(tabId);
 });
 
-chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "loading") {
+    const pageUrl = tab.url;
+    if (pageUrl && (pageUrl.startsWith("http://") || pageUrl.startsWith("https://"))) {
+      const prev = tabLoadMeta.get(tabId);
+      const newHost = hostFromHttpUrl(pageUrl);
+      if (prev && newHost !== "" && prev.host !== newHost) {
+        const elapsed = Date.now() - prev.loadedAt;
+        if (elapsed > 0 && elapsed <= RAPID_REDIRECT_MS) {
+          void storeRedirectEvidence(tabId, {
+            pageUrl,
+            start_host: prev.host,
+            end_host: newHost,
+            redirect_ms: elapsed,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+    }
+
     warnedUrlByTabId.delete(tabId);
     void clearBehaviorDiffForTab(tabId);
+    return;
+  }
+
+  if (changeInfo.status === "complete") {
+    const pageUrl = tab.url;
+    if (!pageUrl || (!pageUrl.startsWith("http://") && !pageUrl.startsWith("https://"))) {
+      return;
+    }
+    tabLoadMeta.set(tabId, {
+      url: pageUrl,
+      host: hostFromHttpUrl(pageUrl),
+      loadedAt: Date.now(),
+    });
   }
 });
 

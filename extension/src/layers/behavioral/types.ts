@@ -4,6 +4,9 @@ export type BehaviorDiff = {
   action_origin_changed: boolean;
   brand_hits_increased: boolean;
   observed_ms: number;
+  redirect_ms: number;
+  start_host: string;
+  end_host: string;
 };
 
 export type BehavioralContextPayload = {

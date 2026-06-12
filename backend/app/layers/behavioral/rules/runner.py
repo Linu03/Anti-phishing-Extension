@@ -8,6 +8,7 @@ from app.layers.behavioral.rules.dynamic import (
     check_delayed_credential_form,
     check_dynamic_submit_destination,
 )
+from app.layers.behavioral.rules.redirect import check_rapid_cross_domain_redirect
 from app.layers.behavioral.schemas import BehaviorDiffModel, BehavioralContextModel
 
 BehaviorRuleFn = Callable[
@@ -16,6 +17,7 @@ BehaviorRuleFn = Callable[
 ]
 
 BEHAVIOR_RULES: list[BehaviorRuleFn] = [
+    check_rapid_cross_domain_redirect,
     check_delayed_credential_form,
     check_dynamic_submit_destination,
     check_delayed_brand_injection,

@@ -7,3 +7,6 @@ export const BEHAVIOR_WAIT_BUFFER_MS = 2500;
 export const BEHAVIOR_POLL_INTERVAL_MS = 400;
 
 export const BEHAVIOR_WAIT_TIMEOUT_MS = BEHAVIOR_OBSERVE_WINDOW_MS + BEHAVIOR_WAIT_BUFFER_MS;
+
+/** Redirects faster - rapid bait-and-switch timing. */
+export const RAPID_REDIRECT_MS = 3000;

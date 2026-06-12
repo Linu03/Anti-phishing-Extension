@@ -9,6 +9,9 @@ class BehaviorDiffModel(BaseModel):
     action_origin_changed: bool = False
     brand_hits_increased: bool = False
     observed_ms: int = 0
+    redirect_ms: int = 0
+    start_host: str = ""
+    end_host: str = ""
 
 
 class BehavioralContextModel(BaseModel):

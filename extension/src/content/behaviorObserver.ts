@@ -1,9 +1,13 @@
 import { BEHAVIOR_OBSERVE_WINDOW_MS } from "../layers/behavioral/constants";
+import { MSG_STORE_REDIRECT_EVIDENCE } from "../layers/behavioral/redirectEvidence";
 import { matchBrandsFromPage } from "../layers/page-template/brandMatch";
+import { countPasswordLikeInputs } from "../layers/page-template/passwordFieldDetect";
 import { safeOrigin } from "../layers/page-template/urlSanitize";
 import type { BehaviorDiff } from "../layers/behavioral/types";
 import { MSG_STORE_BEHAVIOR_DIFF, type StoredBehaviorDiff } from "../layers/behavioral/behaviorDiffStorage";
+
 const DEBOUNCE_MS = 400;
+const LOCATION_POLL_MS = 250;
 const GUARD_KEY = "__afs_behavior_observer_active__";
 
 type BehaviorSnapshot = {
@@ -11,6 +15,12 @@ type BehaviorSnapshot = {
   passwordCount: number;
   actionOrigin: string;
   brandHits: string[];
+};
+
+type RedirectTracker = {
+  startHost: string;
+  endHost: string;
+  redirectMs: number;
 };
 
 function captureSnapshot(pageHref: string, brandIds: string[]): BehaviorSnapshot {
@@ -26,7 +36,7 @@ function captureSnapshot(pageHref: string, brandIds: string[]): BehaviorSnapshot
   }
 
   try {
-    passwordCount = document.querySelectorAll('input[type="password"]').length;
+    passwordCount = countPasswordLikeInputs(document);
   } catch {
     passwordCount = 0;
   }
@@ -71,7 +81,12 @@ function brandHitsIncreased(before: string[], after: string[]): boolean {
   return false;
 }
 
-function buildDiff(before: BehaviorSnapshot, after: BehaviorSnapshot, observedMs: number): BehaviorDiff {
+function buildDiff(
+  before: BehaviorSnapshot,
+  after: BehaviorSnapshot,
+  observedMs: number,
+  redirect: RedirectTracker,
+): BehaviorDiff {
   const formsAppeared =
     (before.formCount === 0 && after.formCount > 0) || after.formCount > before.formCount;
 
@@ -83,6 +98,9 @@ function buildDiff(before: BehaviorSnapshot, after: BehaviorSnapshot, observedMs
       (before.actionOrigin !== "" || after.actionOrigin !== ""),
     brand_hits_increased: brandHitsIncreased(before.brandHits, after.brandHits),
     observed_ms: observedMs,
+    redirect_ms: redirect.redirectMs,
+    start_host: redirect.startHost,
+    end_host: redirect.endHost,
   };
 }
 
@@ -105,6 +123,32 @@ async function saveBehaviorDiff(tabId: number, pageUrl: string, diff: BehaviorDi
   }
 }
 
+async function saveRedirectEvidence(
+  tabId: number,
+  pageUrl: string,
+  redirect: RedirectTracker,
+): Promise<void> {
+  if (redirect.redirectMs <= 0 || redirect.startHost === "" || redirect.endHost === "") {
+    return;
+  }
+
+  try {
+    await chrome.runtime.sendMessage({
+      type: MSG_STORE_REDIRECT_EVIDENCE,
+      tabId,
+      evidence: {
+        pageUrl,
+        start_host: redirect.startHost,
+        end_host: redirect.endHost,
+        redirect_ms: redirect.redirectMs,
+        updatedAt: Date.now(),
+      },
+    });
+  } catch {
+    // ignore
+  }
+}
+
 function normalizeObserverPageUrl(url: string): string {
   const withoutHash = url.trim().split("#")[0];
   try {
@@ -116,6 +160,14 @@ function normalizeObserverPageUrl(url: string): string {
     return `${parsed.protocol}//${parsed.host}${pathname}${parsed.search}`;
   } catch {
     return withoutHash;
+  }
+}
+
+function currentPageUrl(): string {
+  try {
+    return normalizeObserverPageUrl(window.location.href);
+  } catch {
+    return "";
   }
 }
 
@@ -131,7 +183,32 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
   const startedAt = Date.now();
   const before = captureSnapshot(pageHref, brandIds);
 
-  void saveBehaviorDiff(tabId, pageUrl, buildDiff(before, before, 0), "observing");
+  const redirect: RedirectTracker = {
+    startHost: window.location.hostname.toLowerCase(),
+    endHost: window.location.hostname.toLowerCase(),
+    redirectMs: 0,
+  };
+
+  const noteHostChange = (): void => {
+    let currentHost = "";
+    try {
+      currentHost = window.location.hostname.toLowerCase();
+    } catch {
+      return;
+    }
+
+    if (currentHost === "" || currentHost === redirect.startHost) {
+      return;
+    }
+
+    if (redirect.redirectMs === 0) {
+      redirect.redirectMs = Date.now() - startedAt;
+      redirect.endHost = currentHost;
+      void saveRedirectEvidence(tabId, currentPageUrl() || pageUrl, redirect);
+    }
+  };
+
+  void saveBehaviorDiff(tabId, pageUrl, buildDiff(before, before, 0, redirect), "observing");
 
   let latest = before;
   let finished = false;
@@ -150,9 +227,12 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
 
     observer.disconnect();
     window.clearTimeout(windowTimer);
+    window.clearInterval(locationPoll);
+
+    noteHostChange();
 
     const observedMs = Date.now() - startedAt;
-    const diff = buildDiff(before, latest, observedMs);
+    const diff = buildDiff(before, latest, observedMs, redirect);
     void saveBehaviorDiff(tabId, pageUrl, diff, "ready");
   };
 
@@ -176,6 +256,18 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
     scheduleRefresh();
   });
 
+  const locationPoll = window.setInterval(() => {
+    noteHostChange();
+  }, LOCATION_POLL_MS);
+
+  window.addEventListener("pagehide", () => {
+    noteHostChange();
+    if (!finished && redirect.redirectMs > 0) {
+      const observedMs = Date.now() - startedAt;
+      void saveBehaviorDiff(tabId, pageUrl, buildDiff(before, latest, observedMs, redirect), "ready");
+    }
+  });
+
   try {
     observer.observe(document.documentElement, {
       childList: true,
@@ -184,7 +276,12 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
       attributeFilter: ["action", "src", "href", "type"],
     });
   } catch {
-    void saveBehaviorDiff(tabId, pageUrl, buildDiff(before, before, Date.now() - startedAt), "ready");
+    void saveBehaviorDiff(
+      tabId,
+      pageUrl,
+      buildDiff(before, before, Date.now() - startedAt, redirect),
+      "ready",
+    );
     return;
   }
 

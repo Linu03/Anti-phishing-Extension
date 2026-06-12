@@ -27,6 +27,7 @@ from app.layers.page_template.rules.credential import (
     effective_has_credential_form,
 )
 from app.layers.page_template.rules.framing import check_login_page_is_framed
+from app.layers.page_template.rules.hosting import check_credential_form_on_free_hosting
 from app.layers.page_template.rules.resources import check_external_resource_ratio
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
@@ -55,6 +56,7 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
     check_hidden_password_field,
     check_login_page_is_framed,
     check_external_resource_ratio,
+    check_credential_form_on_free_hosting,
 ]
 
 

@@ -1,6 +1,11 @@
 import { matchBrandsFromPage } from "../layers/page-template/brandMatch";
 import { emptyFieldProfile } from "../layers/page-template/emptySnapshot";
 import {
+  inputIsHoneypotField,
+  inputIsVisuallyHidden,
+  inputLooksLikePassword,
+} from "../layers/page-template/passwordFieldDetect";
+import {
   safeHostname,
   safeOrigin,
   sanitizeFormAction,
@@ -49,37 +54,6 @@ function attrLower(element: Element, name: string): string {
   }
 }
 
-function passwordInputIsVisuallyHidden(input: HTMLInputElement): boolean {
-  try {
-    const style = window.getComputedStyle(input);
-    if (style.display === "none" || style.visibility === "hidden") {
-      return true;
-    }
-
-    const opacity = Number.parseFloat(style.opacity);
-    if (!Number.isNaN(opacity) && opacity === 0) {
-      return true;
-    }
-
-    const width = input.offsetWidth;
-    const height = input.offsetHeight;
-    if (width <= HIDDEN_PASSWORD_MAX_PX && height <= HIDDEN_PASSWORD_MAX_PX) {
-      return true;
-    }
-
-    const rect = input.getBoundingClientRect();
-    const viewWidth = window.innerWidth;
-    const viewHeight = window.innerHeight;
-    if (rect.right < 0 || rect.bottom < 0 || rect.left > viewWidth || rect.top > viewHeight) {
-      return true;
-    }
-  } catch {
-    return false;
-  }
-
-  return false;
-}
-
 function collectFieldProfile(): FieldProfile {
   const profile = emptyFieldProfile();
 
@@ -98,9 +72,12 @@ function collectFieldProfile(): FieldProfile {
       const inputmode = attrLower(el, "inputmode");
       const meta = `${name} ${id} ${autocomplete}`;
 
-      if (type === "password") {
+      if (
+        (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) &&
+        inputLooksLikePassword(el)
+      ) {
         profile.has_password = true;
-        if (el instanceof HTMLInputElement && passwordInputIsVisuallyHidden(el)) {
+        if (el instanceof HTMLInputElement && inputIsVisuallyHidden(el)) {
           profile.has_hidden_password = true;
         }
       }
@@ -114,15 +91,18 @@ function collectFieldProfile(): FieldProfile {
         profile.has_file = true;
       }
 
-      if (autocomplete === "one-time-code" || OTP_NAME_HINTS.some((hint) => meta.includes(hint))) {
-        profile.has_otp = true;
-      } else if (
-        el instanceof HTMLInputElement &&
-        inputmode === "numeric" &&
-        el.maxLength >= 4 &&
-        el.maxLength <= 8
-      ) {
-        profile.has_otp = true;
+      const otpHoneypot = el instanceof HTMLInputElement && inputIsHoneypotField(el);
+      if (!otpHoneypot) {
+        if (autocomplete === "one-time-code" || OTP_NAME_HINTS.some((hint) => meta.includes(hint))) {
+          profile.has_otp = true;
+        } else if (
+          el instanceof HTMLInputElement &&
+          inputmode === "numeric" &&
+          el.maxLength >= 4 &&
+          el.maxLength <= 8
+        ) {
+          profile.has_otp = true;
+        }
       }
 
       if (autocomplete.includes("cc-") || PAYMENT_NAME_HINTS.some((hint) => meta.includes(hint))) {
@@ -181,7 +161,8 @@ function collectForms(pageHref: string, pageOrigin: string): FormSnapshot[] {
               continue;
             }
             visibleFieldCount = visibleFieldCount + 1;
-            if (field instanceof HTMLInputElement && field.type.toLowerCase() === "password") {
+            if ((field instanceof HTMLInputElement || field instanceof HTMLTextAreaElement) && inputLooksLikePassword(field)) 
+            {
               hasPassword = true;
             }
           }
