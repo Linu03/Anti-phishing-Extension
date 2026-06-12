@@ -16,6 +16,7 @@ import type {
   FormSnapshot,
   IframeSnapshot,
   PageSnapshot,
+  ProminentImage,
   SubmitButtonSnapshot,
 } from "../layers/page-template/types";
 
@@ -25,6 +26,10 @@ const MAX_IMGS = 60;
 const MAX_RESOURCE_NODES = 80;
 const HIDDEN_IFRAME_MAX_PX = 2;
 const HIDDEN_PASSWORD_MAX_PX = 2;
+
+const LOGO_MIN_AREA_PX = 600;
+const LOGO_B64_MAX_EDGE = 512;
+const LOGO_B64_QUALITY = 0.82;
 
 const PAYMENT_NAME_HINTS = [
   "cardnumber",
@@ -516,6 +521,125 @@ function collectPageResources(pageHref: string, pageHost: string, scriptFpOrigin
   };
 }
 
+function absoluteUrl(rawUrl: string, pageHref: string): string {
+  const value = rawUrl.trim();
+  if (value === "") {
+    return "";
+  }
+  try {
+    return new URL(value, pageHref).href;
+  } catch {
+    return "";
+  }
+}
+
+function scoreLogoCandidate(img: HTMLImageElement): number {
+  let rect: DOMRect;
+  try {
+    rect = img.getBoundingClientRect();
+  } catch {
+    return -1;
+  }
+
+  const width = rect.width;
+  const height = rect.height;
+  const area = width * height;
+  if (area < LOGO_MIN_AREA_PX) {
+    return -1;
+  }
+
+  // Logos/headers sit near the top; reward upper placement, penalize huge banners.
+  const viewportH = window.innerHeight > 0 ? window.innerHeight : 800;
+  const topBias = rect.top <= viewportH * 0.35 ? 1.6 : 1.0;
+  const aspect = width > 0 && height > 0 ? width / height : 0;
+  const aspectBias = aspect >= 0.5 && aspect <= 6 ? 1.2 : 1.0;
+
+  return area * topBias * aspectBias;
+}
+
+function pickProminentImageElement(): HTMLImageElement | null {
+  let best: HTMLImageElement | null = null;
+  let bestScore = 0;
+
+  try {
+    const imgs = document.querySelectorAll("img");
+    const limit = imgs.length < MAX_IMGS ? imgs.length : MAX_IMGS;
+    for (let i = 0; i < limit; i++) {
+      const el = imgs[i];
+      if (!(el instanceof HTMLImageElement)) {
+        continue;
+      }
+      if (el.naturalWidth === 0 || el.naturalHeight === 0) {
+        continue;
+      }
+      const score = scoreLogoCandidate(el);
+      if (score > bestScore) {
+        bestScore = score;
+        best = el;
+      }
+    }
+  } catch {
+    return null;
+  }
+
+  return best;
+}
+
+function tryEncodeImageB64(img: HTMLImageElement): { b64: string; mime: string } {
+  try {
+    const naturalW = img.naturalWidth;
+    const naturalH = img.naturalHeight;
+    if (naturalW === 0 || naturalH === 0) {
+      return { b64: "", mime: "" };
+    }
+
+    const scale = Math.min(1, LOGO_B64_MAX_EDGE / Math.max(naturalW, naturalH));
+    const canvasW = Math.max(1, Math.round(naturalW * scale));
+    const canvasH = Math.max(1, Math.round(naturalH * scale));
+
+    const canvas = document.createElement("canvas");
+    canvas.width = canvasW;
+    canvas.height = canvasH;
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) {
+      return { b64: "", mime: "" };
+    }
+    ctx.drawImage(img, 0, 0, canvasW, canvasH);
+
+    // toDataURL throws/taints for cross-origin images without CORS — caught below.
+    const dataUrl = canvas.toDataURL("image/jpeg", LOGO_B64_QUALITY);
+    const commaIndex = dataUrl.indexOf(",");
+    if (commaIndex === -1) {
+      return { b64: "", mime: "" };
+    }
+    return { b64: dataUrl.slice(commaIndex + 1), mime: "image/jpeg" };
+  } catch {
+    return { b64: "", mime: "" };
+  }
+}
+
+function collectProminentImage(pageHref: string): ProminentImage | null {
+  const img = pickProminentImageElement();
+  if (img === null) {
+    return null;
+  }
+
+  const url = absoluteUrl(img.currentSrc || img.src || "", pageHref);
+  if (url === "") {
+    return null;
+  }
+
+  const encoded = tryEncodeImageB64(img);
+
+  return {
+    url,
+    b64: encoded.b64,
+    mime: encoded.mime,
+    width: Math.round(img.naturalWidth),
+    height: Math.round(img.naturalHeight),
+  };
+}
+
 export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[]): PageSnapshot {
   const pageHref = window.location.href;
   const pageOrigin = sanitizedTabUrl(pageHref);
@@ -607,6 +731,15 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
   const hasCredentialForm =
     fieldProfile.has_password || fieldProfile.has_otp;
 
+  let prominentImage: ProminentImage | null = null;
+  if (hasCredentialForm) {
+    try {
+      prominentImage = collectProminentImage(pageHref);
+    } catch {
+      prominentImage = null;
+    }
+  }
+
   return {
     page_url: pageOrigin !== "" ? pageOrigin : pageHref.slice(0, 8192),
     page_host: pageHost,
@@ -630,6 +763,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
     hidden_input_count: hiddenInputCount,
     is_framed: pageIsFramed(),
     field_profile: fieldProfile,
+    prominent_image: prominentImage,
   };
 }
 

@@ -6,7 +6,7 @@ from urllib.parse import ParseResult, parse_qs, unquote
 from app.core.url_normalize import lookup_key_from_parsed, normalize_url_input, parse_http_url
 from app.layers.url_analyzer.brand_registry import BrandRegistry
 from app.layers.url_analyzer.finding import UrlFinding
-from app.layers.url_analyzer.rules.brand_impersonation import check_brand_in_subdomain
+from app.layers.url_analyzer.rules.hosting_brand_matrix import check_hosting_brand_matrix
 from app.layers.url_analyzer.rules.patterns import (
     check_idn_homograph,
     check_unicode_normalization,
@@ -125,7 +125,7 @@ def _suspicious_reasons_for_nested_url(nested_url: str, registry: BrandRegistry)
     for finding in check_typosquatting(host, registry):
         reasons.append(finding.detail)
 
-    for finding in check_brand_in_subdomain(host, registry):
+    for finding in check_hosting_brand_matrix(host):
         reasons.append(finding.detail)
 
     for finding in check_idn_homograph(host, parsed):

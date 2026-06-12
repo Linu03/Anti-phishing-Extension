@@ -11,6 +11,8 @@ __pycache__/
 *.pyc
 .env
 .env.*
+!.env.example
+backend/.env
 
 # Tranco raw list 
 backend/data/top-1m.csv
@@ -20,4 +22,6 @@ backend/scripts/run_url_analyzer_fp_battery.py
 backend/scripts/run_url_analyzer_fp_battery.pyc
 backend/scripts/fixtures/
 
+# Temporary scan debug dumps (local verification)
+backend/debug_reports/*.json
 /Project_Tracker.md

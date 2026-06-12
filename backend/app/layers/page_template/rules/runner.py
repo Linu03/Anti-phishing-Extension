@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
+
+import httpx
 
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.brand import check_brand_page_host_mismatch
@@ -29,6 +31,7 @@ from app.layers.page_template.rules.credential import (
 from app.layers.page_template.rules.framing import check_login_page_is_framed
 from app.layers.page_template.rules.hosting import check_credential_form_on_free_hosting
 from app.layers.page_template.rules.resources import check_external_resource_ratio
+from app.layers.page_template.rules.visual_brand import check_visual_brand_impersonation
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -37,6 +40,11 @@ from app.layers.page_template.schemas import (
 RuleFn = Callable[
     [PageSnapshotModel, PriorLayersContextModel],
     list[PageFinding],
+]
+
+AsyncRuleFn = Callable[
+    [PageSnapshotModel, PriorLayersContextModel, httpx.AsyncClient],
+    Awaitable[list[PageFinding]],
 ]
 
 
@@ -65,6 +73,11 @@ GENERAL_RULES: list[RuleFn] = [
 ]
 
 
+ASYNC_CREDENTIAL_GATED_RULES: list[AsyncRuleFn] = [
+    check_visual_brand_impersonation,
+]
+
+
 def run_all_rules(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
@@ -81,3 +94,18 @@ def run_all_rules(
             findings.extend(rule(snapshot, context))
 
     return findings, credential_context
+
+
+async def run_async_rules(
+    snapshot: PageSnapshotModel,
+    context: PriorLayersContextModel,
+    http_client: httpx.AsyncClient,
+) -> list[PageFinding]:
+    findings: list[PageFinding] = []
+    for rule in ASYNC_CREDENTIAL_GATED_RULES:
+        try:
+            findings.extend(await rule(snapshot, context, http_client))
+        except Exception:
+            # external rules must never break the synchronous verdict
+            continue
+    return findings

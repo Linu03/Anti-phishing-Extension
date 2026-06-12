@@ -30,6 +30,7 @@
     "tiktok": ["tiktok.com"],
     "twitter": ["twitter.com", "x.com"],
     "chatgpt": ["chatgpt.com", "openai.com"],
-    "whatsapp": ["whatsapp.com", "whatsapp.net"]
+    "whatsapp": ["whatsapp.com", "whatsapp.net"],
+    "upt": ["upt.ro"]
   }
 }

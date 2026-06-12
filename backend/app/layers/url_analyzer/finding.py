@@ -6,3 +6,4 @@ class UrlFinding:
     rule: str
     points: int
     detail: str
+    tier: str = ""

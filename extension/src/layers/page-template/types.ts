@@ -38,6 +38,14 @@ export type FieldProfile = {
   has_identity: boolean;
 };
 
+export type ProminentImage = {
+  url: string;
+  b64: string;
+  mime: string;
+  width: number;
+  height: number;
+};
+
 export type PageSnapshot = {
   page_url: string;
   page_host: string;
@@ -61,6 +69,7 @@ export type PageSnapshot = {
   hidden_input_count: number;
   is_framed: boolean;
   field_profile: FieldProfile;
+  prominent_image: ProminentImage | null;
 };
 
 export type PriorLayersContextPayload = {

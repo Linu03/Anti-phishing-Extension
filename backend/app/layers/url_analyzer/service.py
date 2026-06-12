@@ -17,7 +17,7 @@ from app.layers.url_analyzer.rules.patterns import (
     check_url_too_long,
 )
 from app.layers.url_analyzer.risk import url_risk_from_score, url_risk_label
-from app.layers.url_analyzer.rules.brand_impersonation import check_brand_in_subdomain
+from app.layers.url_analyzer.rules.hosting_brand_matrix import check_hosting_brand_matrix
 from app.layers.url_analyzer.rules.nested_url import check_nested_url_in_query
 from app.layers.url_analyzer.rules.suspicious_tld import check_suspicious_tld
 from app.layers.url_analyzer.rules.typosquatting import check_typosquatting
@@ -49,7 +49,7 @@ def analyze_url(url: str) -> dict:
     all_findings.extend(check_phishing_keywords(host, parsed)) # Rule 7
     registry = get_brand_registry()
     all_findings.extend(check_typosquatting(host, registry))  # Rule 8
-    all_findings.extend(check_brand_in_subdomain(host, registry))  # Rule 8b
+    all_findings.extend(check_hosting_brand_matrix(host))  # Rule 8b
     all_findings.extend(check_suspicious_tld(host))  # Rule 9
     all_findings.extend(check_high_entropy_hostname(host))  # Rule 10
     all_findings.extend(check_idn_homograph(host, parsed))  # Rule 11

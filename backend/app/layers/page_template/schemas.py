@@ -36,6 +36,14 @@ class FieldProfileModel(BaseModel):
     has_identity: bool = False
 
 
+class ProminentImageModel(BaseModel):
+    url: str = ""
+    b64: str = Field(default="", max_length=8 * 1024 * 1024)
+    mime: str = ""
+    width: int = 0
+    height: int = 0
+
+
 class PageSnapshotModel(BaseModel):
     page_url: str = Field(..., min_length=4, max_length=8192)
     page_host: str = ""
@@ -62,6 +70,7 @@ class PageSnapshotModel(BaseModel):
     hidden_input_count: int = 0
     is_framed: bool = False
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
+    prominent_image: ProminentImageModel | None = None
 
 
 class PriorLayersContextModel(BaseModel):

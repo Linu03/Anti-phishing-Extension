@@ -4,7 +4,9 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.schemas import PriorLayersContextModel
 
 
-_URL_RULES_AMP_WITH_BRAND = frozenset({"typosquatting", "nested_url", "brand_in_subdomain"})
+_URL_RULES_AMP_WITH_BRAND = frozenset(
+    {"typosquatting", "nested_url", "hosting_brand_matrix"}
+)
 
 
 def apply_amplification(

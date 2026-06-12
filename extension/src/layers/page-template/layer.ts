@@ -37,7 +37,8 @@ function buildOkDetail(step: Extract<PageTemplateStepResult, { status: "ok" }>):
   }
 
   const lines: string[] = [];
-  for (const finding of step.findings) {
+  const sortedFindings = [...step.findings].sort((a, b) => b.points - a.points);
+  for (const finding of sortedFindings) {
     if (finding.rule === RULE_COLLECTION_FAILED) {
       lines.push(collectionFailedUserMessage(step.score));
       continue;

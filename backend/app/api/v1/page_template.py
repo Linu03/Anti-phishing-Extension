@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
 from app.layers.page_template.constants import get_script_fp_origins_catalog
 from app.layers.page_template.impersonation_registry import get_brand_ids_catalog
@@ -10,7 +10,7 @@ from app.layers.page_template.schemas import (
     PageTemplateAnalyzeResponse,
     ScriptFpOriginsResponse,
 )
-from app.layers.page_template.service import analyze_page_template
+from app.layers.page_template.service import analyze_page_template_async
 
 router = APIRouter(prefix="/page-template")
 
@@ -28,9 +28,10 @@ async def page_template_script_fp_origins() -> ScriptFpOriginsResponse:
 
 
 @router.post("/analyze", response_model=PageTemplateAnalyzeResponse)
-async def page_template_analyze(body: PageTemplateAnalyzeRequest) -> PageTemplateAnalyzeResponse:
+async def page_template_analyze(body: PageTemplateAnalyzeRequest,request: Request) -> PageTemplateAnalyzeResponse:
+    http_client = request.app.state.http_client
     try:
-        result = analyze_page_template(body.snapshot, body.context)
+        result = await analyze_page_template_async(body.snapshot, body.context, http_client)
     except ValueError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
