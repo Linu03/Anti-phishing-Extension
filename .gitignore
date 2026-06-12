@@ -19,3 +19,5 @@ backend/data/top-1m.csv
 backend/scripts/run_url_analyzer_fp_battery.py
 backend/scripts/run_url_analyzer_fp_battery.pyc
 backend/scripts/fixtures/
+
+/Project_Tracker.md

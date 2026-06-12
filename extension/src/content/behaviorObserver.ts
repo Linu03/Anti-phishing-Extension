@@ -1,9 +1,8 @@
+import { BEHAVIOR_OBSERVE_WINDOW_MS } from "../layers/behavioral/constants";
 import { matchBrandsFromPage } from "../layers/page-template/brandMatch";
 import { safeOrigin } from "../layers/page-template/urlSanitize";
 import type { BehaviorDiff } from "../layers/behavioral/types";
-import { behaviorDiffKey, type StoredBehaviorDiff } from "../layers/behavioral/behaviorDiffStorage";
-
-const OBSERVE_WINDOW_MS = 5000;
+import { MSG_STORE_BEHAVIOR_DIFF, type StoredBehaviorDiff } from "../layers/behavioral/behaviorDiffStorage";
 const DEBOUNCE_MS = 400;
 const GUARD_KEY = "__afs_behavior_observer_active__";
 
@@ -96,18 +95,37 @@ async function saveBehaviorDiff(tabId: number, pageUrl: string, diff: BehaviorDi
   };
 
   try {
-    await chrome.storage.session.set({ [behaviorDiffKey(tabId)]: record });
+    await chrome.runtime.sendMessage({
+      type: MSG_STORE_BEHAVIOR_DIFF,
+      tabId,
+      record,
+    });
   } catch {
     // ignore
   }
 }
 
+function normalizeObserverPageUrl(url: string): string {
+  const withoutHash = url.trim().split("#")[0];
+  try {
+    const parsed = new URL(withoutHash);
+    let pathname = parsed.pathname;
+    if (pathname.length > 1 && pathname.endsWith("/")) {
+      pathname = pathname.slice(0, -1);
+    }
+    return `${parsed.protocol}//${parsed.host}${pathname}${parsed.search}`;
+  } catch {
+    return withoutHash;
+  }
+}
+
 export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl: string): void {
-  const guard = globalThis as unknown as Record<string, boolean>;
-  if (guard[GUARD_KEY] === true) {
+  const guard = globalThis as unknown as Record<string, string | undefined>;
+  const pageKey = normalizeObserverPageUrl(pageUrl);
+  if (guard[GUARD_KEY] === pageKey) {
     return;
   }
-  guard[GUARD_KEY] = true;
+  guard[GUARD_KEY] = pageKey;
 
   const pageHref = window.location.href;
   const startedAt = Date.now();
@@ -173,7 +191,7 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
   const windowTimer = window.setTimeout(() => {
     refreshLatest();
     finalize();
-  }, OBSERVE_WINDOW_MS);
+  }, BEHAVIOR_OBSERVE_WINDOW_MS);
 }
 
 type ObserverGlobal = {

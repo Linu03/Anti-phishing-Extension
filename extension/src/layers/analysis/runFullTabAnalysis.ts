@@ -1,6 +1,7 @@
 import { runBlocklistStep } from "../blacklist/runStep";
 import { getBehaviorDiffForTab } from "../behavioral/behaviorDiffStorage";
 import { runBehavioralStep } from "../behavioral/runStep";
+import { startBehaviorObserverForTab } from "../behavioral/startObserverForTab";
 import type { BehavioralContextPayload } from "../behavioral/types";
 import { hostFromInput } from "../urlHost";
 import { runPageTemplateStep } from "../page-template/runStep";
@@ -14,6 +15,10 @@ import { buildPriorLayersContext } from "./priorLayersContext";
 export async function runFullTabAnalysis(pageUrl: string, pageTitle: string): Promise<AnalysisSnapshot> {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
   const activeTabId = tabs[0]?.id;
+
+  if (activeTabId !== undefined) {
+    void startBehaviorObserverForTab(activeTabId, pageUrl);
+  }
 
   const whitelistStep = await runWhitelistStep(pageUrl);
   const blocklistStep = await runBlocklistStep(pageUrl);

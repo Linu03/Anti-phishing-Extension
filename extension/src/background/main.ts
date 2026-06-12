@@ -1,6 +1,11 @@
 import { fetchBlocklistCheck } from "../layers/blacklist/api";
 import { getApiBaseUrl } from "../layers/apiBase";
-import { clearBehaviorDiffForTab } from "../layers/behavioral/behaviorDiffStorage";
+import {
+  clearBehaviorDiffForTab,
+  MSG_STORE_BEHAVIOR_DIFF,
+  storeBehaviorDiffForTab,
+  type StoredBehaviorDiff,
+} from "../layers/behavioral/behaviorDiffStorage";
 import { startBehaviorObserverForTab } from "../layers/behavioral/startObserverForTab";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
@@ -9,6 +14,26 @@ const MSG_GO_BACK = "AFS_GO_BACK";
 const MSG_REMOVE_PERSONAL = "AFS_REMOVE_PERSONAL";
 
 const warnedUrlByTabId = new Map<number, string>();
+
+void chrome.storage.session
+  .setAccessLevel({ accessLevel: "TRUSTED_AND_UNTRUSTED_CONTEXTS" })
+  .catch(() => {
+    // ignore — observer uses runtime messaging as fallback
+  });
+
+function isStoredBehaviorDiff(value: unknown): value is StoredBehaviorDiff {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const record = value as StoredBehaviorDiff;
+  return (
+    typeof record.pageUrl === "string" &&
+    (record.status === "observing" || record.status === "ready") &&
+    typeof record.updatedAt === "number" &&
+    record.diff !== null &&
+    typeof record.diff === "object"
+  );
+}
 
 async function leaveBlockedPage(tabId: number): Promise<void> {
   try {
@@ -23,6 +48,20 @@ async function leaveBlockedPage(tabId: number): Promise<void> {
 }
 
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.type === MSG_STORE_BEHAVIOR_DIFF) {
+    const tabId = msg.tabId;
+    const record = msg.record;
+    if (typeof tabId !== "number" || !isStoredBehaviorDiff(record)) {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void (async () => {
+      await storeBehaviorDiffForTab(tabId, record);
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   if (msg?.type === MSG_REMOVE_PERSONAL) {
     const tabId = sender.tab?.id;
     const url = sender.tab?.url;
