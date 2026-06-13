@@ -5,6 +5,7 @@ import { countPasswordLikeInputs } from "../layers/page-template/passwordFieldDe
 import { safeOrigin } from "../layers/page-template/urlSanitize";
 import type { BehaviorDiff } from "../layers/behavioral/types";
 import { MSG_STORE_BEHAVIOR_DIFF, type StoredBehaviorDiff } from "../layers/behavioral/behaviorDiffStorage";
+import { getJsExfilAttemptsSnapshot, installJsExfilCapture } from "./jsExfilCapture";
 
 const DEBOUNCE_MS = 400;
 const LOCATION_POLL_MS = 250;
@@ -101,6 +102,7 @@ function buildDiff(
     redirect_ms: redirect.redirectMs,
     start_host: redirect.startHost,
     end_host: redirect.endHost,
+    js_exfil_attempts: getJsExfilAttemptsSnapshot(),
   };
 }
 
@@ -180,6 +182,7 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
   guard[GUARD_KEY] = pageKey;
 
   const pageHref = window.location.href;
+  installJsExfilCapture(pageHref);
   const startedAt = Date.now();
   const before = captureSnapshot(pageHref, brandIds);
 

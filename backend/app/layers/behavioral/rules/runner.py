@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from app.layers.behavioral.finding import BehavioralFinding
+from app.layers.behavioral.rules.js_exfil import check_js_exfil_submit
 from app.layers.behavioral.rules.dynamic import (
     check_delayed_brand_injection,
     check_delayed_credential_form,
@@ -21,6 +22,7 @@ BEHAVIOR_RULES: list[BehaviorRuleFn] = [
     check_delayed_credential_form,
     check_dynamic_submit_destination,
     check_delayed_brand_injection,
+    check_js_exfil_submit,
 ]
 
 

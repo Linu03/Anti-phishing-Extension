@@ -27,7 +27,8 @@ export async function runBehavioralStep(
     !diff.password_inputs_increased &&
     !diff.action_origin_changed &&
     !diff.brand_hits_increased &&
-    !hasRedirectSignal;
+    !hasRedirectSignal &&
+    diff.js_exfil_attempts.length === 0;
 
   if (nothingChanged) {
     return {

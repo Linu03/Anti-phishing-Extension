@@ -3,6 +3,13 @@ from __future__ import annotations
 from pydantic import BaseModel, Field
 
 
+class JsExfilAttemptModel(BaseModel):
+    dest_host: str = ""
+    dest_origin: str = ""
+    method: str = ""
+    via: str = ""
+
+
 class BehaviorDiffModel(BaseModel):
     forms_appeared: bool = False
     password_inputs_increased: bool = False
@@ -12,6 +19,7 @@ class BehaviorDiffModel(BaseModel):
     redirect_ms: int = 0
     start_host: str = ""
     end_host: str = ""
+    js_exfil_attempts: list[JsExfilAttemptModel] = Field(default_factory=list)
 
 
 class BehavioralContextModel(BaseModel):

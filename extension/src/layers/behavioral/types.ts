@@ -1,3 +1,10 @@
+export type JsExfilAttempt = {
+  dest_host: string;
+  dest_origin: string;
+  method: string;
+  via: "fetch" | "xhr" | "sendBeacon";
+};
+
 export type BehaviorDiff = {
   forms_appeared: boolean;
   password_inputs_increased: boolean;
@@ -7,6 +14,7 @@ export type BehaviorDiff = {
   redirect_ms: number;
   start_host: string;
   end_host: string;
+  js_exfil_attempts: JsExfilAttempt[];
 };
 
 export type BehavioralContextPayload = {

@@ -3,7 +3,7 @@ import {
   BEHAVIOR_WAIT_TIMEOUT_MS,
 } from "./constants";
 import { readRedirectEvidence } from "./redirectEvidence";
-import type { BehaviorDiff } from "./types";
+import type { BehaviorDiff, JsExfilAttempt } from "./types";
 
 export const BEHAVIOR_DIFF_STORAGE_PREFIX = "behavior_diff_";
 
@@ -32,6 +32,28 @@ export function normalizeScanPageUrl(url: string): string {
   } catch {
     return withoutHash;
   }
+}
+
+function isJsExfilAttempt(value: unknown): value is JsExfilAttempt {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const item = value as JsExfilAttempt;
+  return (
+    typeof item.dest_host === "string" &&
+    typeof item.dest_origin === "string" &&
+    typeof item.method === "string" &&
+    (item.via === "fetch" || item.via === "xhr" || item.via === "sendBeacon")
+  );
+}
+
+function normalizeBehaviorDiff(raw: BehaviorDiff): BehaviorDiff {
+  const attempts = Array.isArray(raw.js_exfil_attempts) ? raw.js_exfil_attempts : [];
+  const js_exfil_attempts = attempts.filter((item) => isJsExfilAttempt(item));
+  return {
+    ...raw,
+    js_exfil_attempts,
+  };
 }
 
 function isStoredRecord(value: unknown): value is StoredBehaviorDiff {
@@ -64,6 +86,7 @@ export function emptyBehaviorDiff(observedMs = 0): BehaviorDiff {
     redirect_ms: 0,
     start_host: "",
     end_host: "",
+    js_exfil_attempts: [],
   };
 }
 
@@ -122,7 +145,8 @@ async function readStoredRecord(tabId: number): Promise<StoredBehaviorDiff | nul
 
 async function buildMergedDiff(tabId: number, pageUrl: string, base: BehaviorDiff): Promise<BehaviorDiff> {
   const redirect = await readRedirectEvidence(tabId);
-  return mergeRedirectEvidence(base, pageUrl, redirect);
+  const merged = mergeRedirectEvidence(base, pageUrl, redirect);
+  return normalizeBehaviorDiff(merged);
 }
 
 export async function getBehaviorDiffForTab(tabId: number, pageUrl: string): Promise<BehaviorDiff | null> {
@@ -139,7 +163,7 @@ export async function getBehaviorDiffForTab(tabId: number, pageUrl: string): Pro
     if (record !== null) {
       const actual = normalizeScanPageUrl(record.pageUrl);
       if (actual === expected && record.status === "ready") {
-        return buildMergedDiff(tabId, pageUrl, record.diff);
+        return buildMergedDiff(tabId, pageUrl, normalizeBehaviorDiff(record.diff));
       }
     }
 
