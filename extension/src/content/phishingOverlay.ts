@@ -134,20 +134,10 @@ function buildOverlay(): HTMLDivElement {
   p1.textContent =
     "This URL matches your extension blocklist. Treat it as high risk unless you fully trust it.";
   Object.assign(p1.style, {
-    margin: "0 0 10px 0",
+    margin: "0",
     fontSize: "13px",
     lineHeight: "1.55",
     color: COL.inkMuted,
-  } as CSSStyleDeclaration);
-
-  const p2 = document.createElement("p");
-  p2.textContent = window.location.href;
-  Object.assign(p2.style, {
-    margin: "0 0 14px 0",
-    fontSize: "11px",
-    lineHeight: "1.45",
-    wordBreak: "break-all",
-    color: COL.inkFaint,
   } as CSSStyleDeclaration);
 
   const row = document.createElement("div");
@@ -228,7 +218,6 @@ function buildOverlay(): HTMLDivElement {
   row.appendChild(continueBtn);
 
   body.appendChild(p1);
-  body.appendChild(p2);
   body.appendChild(row);
 
   card.appendChild(head);

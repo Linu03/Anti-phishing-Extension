@@ -197,6 +197,46 @@ function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview
   );
 }
 
+function TrustedSitePanel({
+  busy,
+  hint,
+  onRemove,
+}: {
+  busy: boolean;
+  hint: string | null;
+  onRemove: () => void;
+}) {
+  return (
+    <div className="space-y-3 px-4 py-2.5">
+      <div className="flex items-start gap-2.5 rounded-lg border border-emerald-900/40 bg-emerald-950/20 px-3 py-3">
+        <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent-safe" strokeWidth={2} aria-hidden />
+        <p className="font-sans text-sm leading-snug text-ink-muted">
+          This site is on your trusted list. The extension skips scanning for this host.
+        </p>
+      </div>
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onRemove}
+        className="flex w-full items-center justify-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/80 px-3 py-2.5 font-sans text-sm font-medium text-ink-muted transition hover:bg-surface-elevated hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} />
+        {busy ? "Removing…" : "Remove from trusted list"}
+      </button>
+      {hint ? <p className="font-sans text-[11px] leading-snug text-ink-muted">{hint}</p> : null}
+    </div>
+  );
+}
+
+async function getActiveTabUrl(): Promise<string> {
+  const tabList = await chrome.tabs.query({ active: true, currentWindow: true });
+  const tab = tabList[0];
+  if (tab && tab.url) {
+    return tab.url.trim();
+  }
+  return "";
+}
+
 export function PopupApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>("manual");
@@ -206,6 +246,8 @@ export function PopupApp() {
   const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
   const [onPersonalList, setOnPersonalList] = useState(false);
   const [onWhitelist, setOnWhitelist] = useState(false);
+  const [trustedSite, setTrustedSite] = useState(false);
+  const [listCheckDone, setListCheckDone] = useState(false);
   const [personalBusy, setPersonalBusy] = useState(false);
   const [whitelistBusy, setWhitelistBusy] = useState(false);
   const [personalHint, setPersonalHint] = useState<string | null>(null);
@@ -253,6 +295,34 @@ export function PopupApp() {
       }
       setScanMode(settings.scanMode);
       setExplanationMode(settings.explanationMode);
+
+      const preview = await loadActiveTabPreview();
+      if (!stillMounted) {
+        return;
+      }
+      setTabPreview(preview);
+
+      let trusted = false;
+      if (preview.url !== "" && !isRestrictedPageUrl(preview.url)) {
+        try {
+          trusted = await isUrlWhitelisted(preview.url);
+        } catch {
+          trusted = false;
+        }
+      }
+      if (!stillMounted) {
+        return;
+      }
+      setTrustedSite(trusted);
+      setOnWhitelist(trusted);
+      setListCheckDone(true);
+
+      if (trusted) {
+        setSnapshot(null);
+        setScanPhase("ready");
+        return;
+      }
+
       if (settings.scanMode === "auto_when_ready") {
         setScanPhase("loading");
         try {
@@ -264,18 +334,12 @@ export function PopupApp() {
         } catch {
           if (stillMounted) {
             setSnapshot(null);
-            const preview = await loadActiveTabPreview();
-            setTabPreview(preview);
             setScanPhase("idle");
           }
         }
         return;
       }
-      const preview = await loadActiveTabPreview();
-      if (stillMounted) {
-        setTabPreview(preview);
-        setScanPhase("idle");
-      }
+      setScanPhase("idle");
     }
 
     void init();
@@ -430,6 +494,9 @@ export function PopupApp() {
       if (await isUrlWhitelisted(url)) {
         setWhitelistHint("Already on your trusted list.");
         setOnWhitelist(true);
+        setTrustedSite(true);
+        setSnapshot(null);
+        setScanPhase("ready");
         return;
       }
       const ok = await addWhitelist(url);
@@ -438,9 +505,10 @@ export function PopupApp() {
         return;
       }
       setOnWhitelist(true);
+      setTrustedSite(true);
       setWhitelistHint("Saved. This host is on your trusted list.");
-      const fresh = await loadActiveTabPhishingAnalysis();
-      setSnapshot(fresh);
+      setSnapshot(null);
+      setScanPhase("ready");
     } catch {
       setWhitelistHint("Could not save. Try again.");
     } finally {
@@ -452,20 +520,22 @@ export function PopupApp() {
     setWhitelistHint(null);
     setWhitelistBusy(true);
     try {
-      const tabList = await chrome.tabs.query({ active: true, currentWindow: true });
-      const tab = tabList[0];
-      let url = "";
-      if (tab && tab.url) {
-        url = tab.url.trim();
-      }
+      const url = await getActiveTabUrl();
       if (url === "" || isRestrictedPageUrl(url)) {
         return;
       }
       await removeWhitelist(url);
       setOnWhitelist(false);
+      setTrustedSite(false);
       setWhitelistHint("Removed from trusted list.");
-      const fresh = await loadActiveTabPhishingAnalysis();
-      setSnapshot(fresh);
+      clearExplain();
+      resetLayerExpansion();
+      if (scanMode === "auto_when_ready") {
+        void runScan();
+      } else {
+        setSnapshot(null);
+        setScanPhase("idle");
+      }
     } catch {
       setWhitelistHint("Could not remove. Try again.");
     } finally {
@@ -520,6 +590,31 @@ export function PopupApp() {
     },
   };
 
+  if (!listCheckDone) {
+    return (
+      <PopupSlideShell {...shellProps}>
+        <div className="flex items-center gap-3 bg-surface-elevated/50 px-4 py-3">
+          <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
+          <p className="font-sans text-sm text-ink-muted">Checking this tab…</p>
+        </div>
+      </PopupSlideShell>
+    );
+  }
+
+  if (trustedSite) {
+    return (
+      <PopupSlideShell {...shellProps}>
+        <TrustedSitePanel
+          busy={whitelistBusy}
+          hint={whitelistHint}
+          onRemove={() => {
+            void handleRemoveTrustCurrentSite();
+          }}
+        />
+      </PopupSlideShell>
+    );
+  }
+
   if (scanPhase === "loading") {
     return (
       <PopupSlideShell {...shellProps}>
@@ -560,7 +655,6 @@ export function PopupApp() {
   const pageOk = !isRestrictedPageUrl(snapshot.pageUrl);
   const showPersonalBlockSection = pageOk && !onPersonalList && !onWhitelist;
   const showTrustSection = pageOk && !onWhitelist && !onPersonalList;
-  const showRemoveTrustSection = pageOk && onWhitelist;
   const personalBlockDisabled = personalBusy;
   const whitelistDisabled = whitelistBusy;
   const visibleLayers = layersForDisplay(snapshot.layers, explanationMode);
@@ -568,8 +662,7 @@ export function PopupApp() {
   const showFindingsSection = explanationMode === "technical";
   const showExplainSection = explanationMode === "plain" || explanationMode === "technical";
 
-  const showActionBar =
-    scanMode === "manual" || showTrustSection || showRemoveTrustSection || showPersonalBlockSection;
+  const showActionBar = scanMode === "manual" || showTrustSection || showPersonalBlockSection;
 
   function toggleLayerExpanded(layerId: string) {
     setExpandedLayerId((current) => (current === layerId ? null : layerId));
@@ -662,12 +755,10 @@ export function PopupApp() {
 
         {showActionBar ? (
           <div className="space-y-2 border-t border-surface-border pt-2">
-            {showPersonalBlockSection || showTrustSection || showRemoveTrustSection ? (
+            {showPersonalBlockSection || showTrustSection ? (
               <div
                 className={
-                  showPersonalBlockSection && (showTrustSection || showRemoveTrustSection)
-                    ? "grid grid-cols-2 gap-2"
-                    : "grid grid-cols-1 gap-2"
+                  showPersonalBlockSection && showTrustSection ? "grid grid-cols-2 gap-2" : "grid grid-cols-1 gap-2"
                 }
               >
                 {showPersonalBlockSection ? (
@@ -695,20 +786,6 @@ export function PopupApp() {
                   >
                     <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} />
                     Trust site
-                  </button>
-                ) : null}
-
-                {showRemoveTrustSection ? (
-                  <button
-                    type="button"
-                    disabled={whitelistDisabled}
-                    onClick={() => {
-                      void handleRemoveTrustCurrentSite();
-                    }}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-emerald-900/40 bg-emerald-950/20 px-3 py-2.5 font-sans text-sm font-medium text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
-                  >
-                    <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} />
-                    Remove trust
                   </button>
                 ) : null}
               </div>
