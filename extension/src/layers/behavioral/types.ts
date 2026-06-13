@@ -12,6 +12,7 @@ export type BehaviorDiff = {
 export type BehavioralContextPayload = {
   page_host: string;
   has_credential_form: boolean;
+  has_sensitive_form: boolean;
   whitelist_trusted: boolean;
   blocklist_listed: boolean;
   url_analyzer_score: number | null;

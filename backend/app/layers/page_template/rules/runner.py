@@ -26,7 +26,7 @@ from app.layers.page_template.rules.navigation import (
 )
 from app.layers.page_template.rules.credential import (
     check_credential_form_on_http,
-    effective_has_credential_form,
+    effective_has_sensitive_form,
 )
 from app.layers.page_template.rules.framing import check_login_page_is_framed
 from app.layers.page_template.rules.hosting import check_credential_form_on_free_hosting
@@ -83,17 +83,17 @@ def run_all_rules(
     context: PriorLayersContextModel,
 ) -> tuple[list[PageFinding], bool]:
 
-    credential_context = effective_has_credential_form(snapshot)
+    sensitive_context = effective_has_sensitive_form(snapshot)
     findings: list[PageFinding] = []
 
     for rule in GENERAL_RULES:
         findings.extend(rule(snapshot, context))
 
-    if credential_context:
+    if sensitive_context:
         for rule in CREDENTIAL_GATED_RULES:
             findings.extend(rule(snapshot, context))
 
-    return findings, credential_context
+    return findings, sensitive_context
 
 
 async def run_async_rules(

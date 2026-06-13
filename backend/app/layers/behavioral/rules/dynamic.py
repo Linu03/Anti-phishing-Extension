@@ -44,6 +44,10 @@ def check_delayed_credential_form(
     ]
 
 
+def _has_sensitive_context(context: BehavioralContextModel) -> bool:
+    return context.has_sensitive_form or context.has_credential_form
+
+
 def check_dynamic_submit_destination(
     diff: BehaviorDiffModel,
     context: BehavioralContextModel,
@@ -54,7 +58,7 @@ def check_dynamic_submit_destination(
     if not diff.action_origin_changed:
         return []
 
-    if not context.has_credential_form:
+    if not _has_sensitive_context(context):
         return []
 
     return [

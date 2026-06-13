@@ -5,7 +5,7 @@ from urllib.parse import urljoin, urlparse
 import tldextract
 
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import effective_has_sensitive_form
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -115,7 +115,7 @@ def _same_registrable_domain(page_host: str, submit_host: str) -> bool:
 # use layer 3 URL analyzer to check if the form submit destination is suspicious
 def check_suspicious_submit_destination(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
 
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     page_host = _host_from_url(snapshot.page_url)
@@ -173,7 +173,7 @@ def check_suspicious_submit_destination(snapshot: PageSnapshotModel, _context: P
 
 
 def check_http_form_action_on_https_page(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     page_url = snapshot.page_url.strip()
@@ -209,7 +209,7 @@ def check_invalid_form_action(
     snapshot: PageSnapshotModel,
     _context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     targets = _collect_submit_targets(snapshot)

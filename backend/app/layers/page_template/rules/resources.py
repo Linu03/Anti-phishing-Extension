@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import effective_has_sensitive_form
 from app.layers.page_template.rules.trust_context import TrustLevel, resolve_page_trust_context
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
@@ -25,7 +25,7 @@ def check_external_resource_ratio(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     trust = resolve_page_trust_context(snapshot, context)

@@ -16,7 +16,7 @@ from app.layers.page_template.logo_phash import (
     match_brand_from_prominent_image,
 )
 from app.layers.page_template.rules.brand import host_matches_brand
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import effective_has_sensitive_form
 from app.core.free_hosting import FREE_HOSTING_ALL
 from app.layers.page_template.rules.trust_context import (
     TrustLevel,
@@ -187,7 +187,7 @@ async def check_visual_brand_impersonation(
     context: PriorLayersContextModel,
     http_client: httpx.AsyncClient,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     image = snapshot.prominent_image

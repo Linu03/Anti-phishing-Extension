@@ -23,7 +23,7 @@ def _registered_domain(host: str) -> str:
 
 
 def _has_phishing_context(context: BehavioralContextModel) -> bool:
-    if context.has_credential_form:
+    if context.has_sensitive_form or context.has_credential_form:
         return True
 
     score = context.url_analyzer_score

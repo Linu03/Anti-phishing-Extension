@@ -1,7 +1,10 @@
 from __future__ import annotations
 
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import (
+    effective_has_credential_form,
+    effective_has_sensitive_form,
+)
 from app.layers.page_template.rules.trust_context import TrustLevel, resolve_page_trust_context
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
@@ -42,7 +45,13 @@ def _sensitive_points(trust: TrustLevel, has_payment: bool, has_identity: bool) 
     return POINTS_SENSITIVE_BOTH_NEUTRAL if both else POINTS_SENSITIVE_ONE_NEUTRAL
 
 
-def _sensitive_detail(page_host: str,has_payment: bool,has_identity: bool) -> str:
+def _sensitive_detail(
+    page_host: str,
+    has_payment: bool,
+    has_identity: bool,
+    *,
+    has_credential: bool,
+) -> str:
     if has_payment and has_identity:
         kinds = "payment and identity fields (card/CVV and CNP/national ID)"
     elif has_payment:
@@ -50,13 +59,13 @@ def _sensitive_detail(page_host: str,has_payment: bool,has_identity: bool) -> st
     else:
         kinds = "identity fields (CNP/national ID)"
 
-    return (
-        f"Login page also requests {kinds} on host '{page_host}'."
-    )
+    if has_credential:
+        return f"Login page also requests {kinds} on host '{page_host}'."
+    return f"Page requests sensitive {kinds} on host '{page_host}'."
 
 
 def check_sensitive_field_collection(snapshot: PageSnapshotModel, context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     profile = snapshot.field_profile
@@ -70,13 +79,19 @@ def check_sensitive_field_collection(snapshot: PageSnapshotModel, context: Prior
         return []
 
     page_host = snapshot.page_host.strip() or snapshot.page_url
+    has_credential = effective_has_credential_form(snapshot)
     points = _sensitive_points(trust, has_payment, has_identity)
 
     return [
         PageFinding(
             rule=RULE_SENSITIVE_FIELD_COLLECTION,
             points=points,
-            detail=_sensitive_detail(page_host, has_payment, has_identity),
+            detail=_sensitive_detail(
+                page_host,
+                has_payment,
+                has_identity,
+                has_credential=has_credential,
+            ),
             tier="B",
         )
     ]
@@ -117,7 +132,7 @@ def check_excessive_hidden_inputs(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     trust = resolve_page_trust_context(snapshot, context)
@@ -183,7 +198,7 @@ def check_hidden_password_field(
 
 
 def check_file_upload_with_login(snapshot: PageSnapshotModel, context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     if not snapshot.field_profile.has_file:

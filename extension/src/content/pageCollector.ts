@@ -730,9 +730,11 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
 
   const hasCredentialForm =
     fieldProfile.has_password || fieldProfile.has_otp;
+  const hasSensitiveForm =
+    hasCredentialForm || fieldProfile.has_payment || fieldProfile.has_identity;
 
   let prominentImage: ProminentImage | null = null;
-  if (hasCredentialForm) {
+  if (hasSensitiveForm) {
     try {
       prominentImage = collectProminentImage(pageHref);
     } catch {

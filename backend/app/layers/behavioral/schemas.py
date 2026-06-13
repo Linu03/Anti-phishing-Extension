@@ -17,6 +17,7 @@ class BehaviorDiffModel(BaseModel):
 class BehavioralContextModel(BaseModel):
     page_host: str = ""
     has_credential_form: bool = False
+    has_sensitive_form: bool = False
     whitelist_trusted: bool = False
     blocklist_listed: bool = False
     url_analyzer_score: int | None = None

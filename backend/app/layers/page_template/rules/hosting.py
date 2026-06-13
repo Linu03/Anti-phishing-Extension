@@ -4,7 +4,11 @@ import tldextract
 
 from app.core.free_hosting import FREE_HOSTING_ALL
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import (
+    effective_has_sensitive_form,
+    is_payment_identity_only,
+    scaled_points_for_sensitive_context,
+)
 from app.layers.page_template.rules.trust_context import TrustLevel, resolve_page_trust_context
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
@@ -31,7 +35,7 @@ def check_credential_form_on_free_hosting(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     trust = resolve_page_trust_context(snapshot, context)
@@ -46,15 +50,26 @@ def check_credential_form_on_free_hosting(
     if registered == "" or registered not in FREE_HOSTING_ALL:
         return []
 
+    points = scaled_points_for_sensitive_context(snapshot, POINTS_FREE_HOSTING)
+    if is_payment_identity_only(snapshot):
+        detail = (
+            f"Sensitive data form is hosted on free site-builder domain "
+            f"'{registered}' (page host '{page_host}'). "
+            f"Legitimate institutions do not collect card or identity data "
+            f"on prototyping hosts."
+        )
+    else:
+        detail = (
+            f"Credential form is hosted on free site-builder domain "
+            f"'{registered}' (page host '{page_host}'). "
+            f"Legitimate institutions do not collect passwords on prototyping hosts."
+        )
+
     return [
         PageFinding(
             rule=RULE_CREDENTIAL_FORM_ON_FREE_HOSTING,
-            points=POINTS_FREE_HOSTING,
-            detail=(
-                f"Credential form is hosted on free site-builder domain "
-                f"'{registered}' (page host '{page_host}'). "
-                f"Legitimate institutions do not collect passwords on prototyping hosts."
-            ),
+            points=points,
+            detail=detail,
             tier="A",
         )
     ]

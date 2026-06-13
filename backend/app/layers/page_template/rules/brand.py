@@ -7,7 +7,10 @@ import tldextract
 from app.layers.page_template.constants import IDP_SUBMIT_ORIGINS
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.impersonation_registry import get_impersonation_registry
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import (
+    effective_has_sensitive_form,
+    scaled_points_for_sensitive_context,
+)
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -162,7 +165,7 @@ def check_brand_page_host_mismatch(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     primary_hits = _primary_brand_hits(snapshot)
@@ -190,7 +193,9 @@ def check_brand_page_host_mismatch(
         return [
             PageFinding(
                 rule=RULE_NAME,
-                points=POINTS_BRAND_MISMATCH_PRIMARY,
+                points=scaled_points_for_sensitive_context(
+                    snapshot, POINTS_BRAND_MISMATCH_PRIMARY
+                ),
                 detail=(
                     f"Page presents brand '{brand}' but document host is "
                     f"'{snapshot.page_host}' (expected official domain)."
@@ -206,7 +211,9 @@ def check_brand_page_host_mismatch(
         return [
             PageFinding(
                 rule=RULE_NAME,
-                points=POINTS_BRAND_MISMATCH_SECONDARY,
+                points=scaled_points_for_sensitive_context(
+                    snapshot, POINTS_BRAND_MISMATCH_SECONDARY
+                ),
                 detail=(
                     f"Brand '{brand}' appears on page but host is "
                     f"'{snapshot.page_host}' (secondary surface only)."

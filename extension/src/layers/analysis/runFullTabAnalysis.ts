@@ -71,6 +71,7 @@ export async function runFullTabAnalysis(
   const behavioralContext: BehavioralContextPayload = {
     page_host: hostFromInput(pageUrl),
     has_credential_form: false,
+    has_sensitive_form: false,
     whitelist_trusted: priorContext.whitelist_trusted,
     blocklist_listed: priorContext.blocklist_listed,
     url_analyzer_score: priorContext.url_analyzer_score,
@@ -80,6 +81,7 @@ export async function runFullTabAnalysis(
   };
 
   if (pageTemplateStep.status === "ok") {
+    behavioralContext.has_sensitive_form = pageTemplateStep.credential_context;
     behavioralContext.has_credential_form = pageTemplateStep.credential_context;
     behavioralContext.page_template_score = pageTemplateStep.score;
     behavioralContext.page_template_rules = pageTemplateStep.findings.map((f) => f.rule);

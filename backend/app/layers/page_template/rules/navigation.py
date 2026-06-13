@@ -5,7 +5,7 @@ from urllib.parse import urlparse
 import tldextract
 
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import effective_has_sensitive_form
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -64,7 +64,7 @@ def _pld_mismatch(page_host: str, other_host: str) -> bool:
 
 
 def check_meta_refresh_cross_domain(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     target = snapshot.meta_refresh_target.strip()
@@ -100,7 +100,7 @@ def check_meta_refresh_cross_domain(snapshot: PageSnapshotModel, _context: Prior
 
 
 def check_base_href_cross_domain(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     base_origin = snapshot.base_href_origin.strip()
@@ -132,7 +132,7 @@ def check_canonical_host_mismatch(
     snapshot: PageSnapshotModel,
     _context: PriorLayersContextModel,
 ) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     canonical_host = snapshot.canonical_host.strip().lower()

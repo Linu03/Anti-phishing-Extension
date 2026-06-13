@@ -5,7 +5,7 @@ import tldextract
 
 from app.layers.page_template.constants import IFRAME_MAX_TOTAL_POINTS, IFRAME_TRUSTED_ORIGINS
 from app.layers.page_template.finding import PageFinding
-from app.layers.page_template.rules.credential import effective_has_credential_form
+from app.layers.page_template.rules.credential import effective_has_sensitive_form
 from app.layers.page_template.schemas import (
     IframeSnapshotModel,
     PageSnapshotModel,
@@ -140,7 +140,7 @@ def _apply_iframe_points_cap(findings: list[PageFinding]) -> list[PageFinding]:
 
 
 def check_iframe_signals(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
-    if not effective_has_credential_form(snapshot):
+    if not effective_has_sensitive_form(snapshot):
         return []
 
     page_host = _page_host(snapshot)
