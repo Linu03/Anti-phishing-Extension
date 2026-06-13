@@ -14,6 +14,13 @@ export function buildBlocklistLayer(step: BlocklistStepResult): LayerSignal {
       label: "Blocklist",
       contribution: POINTS_IF_ON_BLOCKLIST,
       detail: `This URL matches the blocklist.${src}`,
+      findings: [
+        {
+          rule: "blocklist_match",
+          points: POINTS_IF_ON_BLOCKLIST,
+          detail: `This URL matches the blocklist.${src}`,
+        },
+      ],
     };
   }
 

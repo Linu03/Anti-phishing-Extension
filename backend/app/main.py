@@ -7,6 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1.behavioral import router as behavioral_router
 from app.api.v1.debug_report import router as debug_report_router
+from app.api.v1.explain import router as explain_router
 from app.api.v1.blacklist import router as blacklist_router
 from app.api.v1.page_template import router as page_template_router
 from app.api.v1.tls import router as tls_router
@@ -51,6 +52,7 @@ app.include_router(tls_router, prefix="/v1")
 app.include_router(page_template_router, prefix="/v1")
 app.include_router(behavioral_router, prefix="/v1")
 app.include_router(debug_report_router, prefix="/v1")
+app.include_router(explain_router, prefix="/v1")
 
 
 @app.get("/health")

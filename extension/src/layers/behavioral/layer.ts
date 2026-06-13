@@ -31,6 +31,7 @@ export function buildBehavioralLayer(step: BehavioralStepResult): LayerSignal {
       label: "Behavioral check",
       contribution: clampContribution(step.score),
       detail,
+      findings: step.findings,
     };
   }
 

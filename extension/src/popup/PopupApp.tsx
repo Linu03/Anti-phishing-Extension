@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ListPlus, ScanLine, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
+import { AlertTriangle, ChevronRight, Layers, ListPlus, MessageCircle, ScanLine, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
 import { loadActiveTabPhishingAnalysis } from "../layers/analysis/loadActiveTabAnalysis";
 import { loadActiveTabPreview, type TabPreview } from "../layers/analysis/loadActiveTabPreview";
+import { getApiBaseUrl } from "../layers/apiBase";
+import { fetchExplain } from "../layers/explain/api";
+import { buildExplainPayload } from "../layers/explain/buildPayload";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import type { AnalysisSnapshot, LayerSignal, Verdict } from "../layers/types";
 import { scoreHue, verdictFromScore, verdictLabel } from "../layers/verdict";
 import { getUserSettings } from "../settings/storage";
-import type { ScanMode } from "../settings/types";
+import type { ExplanationMode, ScanMode } from "../settings/types";
 import { addWhitelist, isUrlWhitelisted, removeWhitelist } from "../layers/whitelist/storage";
 import { addPersonalBlock, isUrlPersonallyBlocked } from "../user-lists/personalBlocklist";
 import { PopupSlideShell } from "./PopupSlideShell";
@@ -70,27 +73,93 @@ function ScoreMini({ score }: { score: number }) {
   );
 }
 
-function LayerCard({ layer }: { layer: LayerSignal }) {
-  return (
-    <div className="rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2">
+function ContributionBadge({ contribution }: { contribution: number }) {
+  if (contribution > 0) {
+    return <span className="shrink-0 font-sans text-xs font-medium text-accent-danger">+{contribution}</span>;
+  }
+  if (contribution < 0) {
+    return <span className="shrink-0 font-sans text-xs font-medium text-accent-safe">{contribution}</span>;
+  }
+  return <span className="shrink-0 font-sans text-xs text-ink-muted">0</span>;
+}
+
+function LayerCard({
+  layer,
+  compact,
+  expandable = false,
+  expanded = false,
+  onToggle,
+}: {
+  layer: LayerSignal;
+  compact: boolean;
+  expandable?: boolean;
+  expanded?: boolean;
+  onToggle?: () => void;
+}) {
+  const showDetail = !compact && layer.detail.trim() !== "";
+
+  const content = (
+    <>
       <div className="flex items-baseline justify-between gap-2">
-        <p className="font-serif text-sm font-semibold text-ink">{layer.label}</p>
-        {layer.contribution > 0 ? (
-          <span className="shrink-0 font-sans text-xs font-medium text-accent-danger">+{layer.contribution}</span>
-        ) : null}
-        {layer.contribution < 0 ? (
-          <span className="shrink-0 font-sans text-xs font-medium text-accent-safe">{layer.contribution}</span>
-        ) : null}
-        {layer.contribution === 0 ? (
-          <span className="shrink-0 font-sans text-xs text-ink-muted">0</span>
-        ) : null}
+        <div className="flex min-w-0 items-center gap-1.5">
+          {expandable ? (
+            <ChevronRight
+              className={`h-3.5 w-3.5 shrink-0 text-ink-faint transition-transform ${expanded ? "rotate-90" : ""}`}
+              strokeWidth={2}
+              aria-hidden
+            />
+          ) : null}
+          <p className="font-serif text-sm font-semibold text-ink">{layer.label}</p>
+        </div>
+        <ContributionBadge contribution={layer.contribution} />
       </div>
-      <p className="mt-1 line-clamp-2 font-sans text-xs leading-snug text-ink-muted">{layer.detail}</p>
-    </div>
+      {showDetail ? (
+        <p className="mt-1 font-sans text-xs leading-snug text-ink-muted">{layer.detail}</p>
+      ) : null}
+    </>
   );
+
+  const cardClass =
+    "w-full rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 text-left transition";
+
+  if (expandable && onToggle) {
+    return (
+      <button
+        type="button"
+        aria-expanded={expanded}
+        onClick={onToggle}
+        className={`${cardClass} hover:bg-surface-elevated`}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return <div className={cardClass}>{content}</div>;
+}
+
+function layersForDisplay(layers: LayerSignal[], mode: ExplanationMode): LayerSignal[] {
+  if (mode === "off") {
+    return [];
+  }
+  return layers.filter((layer) => layer.contribution !== 0);
 }
 
 type ScanPhase = "idle" | "loading" | "ready";
+
+function explainCacheKey(snapshot: AnalysisSnapshot, mode: ExplanationMode): string {
+  return `${mode}|${snapshot.pageUrl}|${snapshot.lastChecked}|${snapshot.threatScore}`;
+}
+
+function explainAudienceForMode(mode: ExplanationMode): "plain" | "technical" | null {
+  if (mode === "plain") {
+    return "plain";
+  }
+  if (mode === "technical") {
+    return "technical";
+  }
+  return null;
+}
 
 function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview | null; busy: boolean; onScan: () => void }) {
   return (
@@ -122,6 +191,7 @@ function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview
 export function PopupApp() {
   const [showSettings, setShowSettings] = useState(false);
   const [scanMode, setScanMode] = useState<ScanMode>("manual");
+  const [explanationMode, setExplanationMode] = useState<ExplanationMode>("off");
   const [scanPhase, setScanPhase] = useState<ScanPhase>("idle");
   const [tabPreview, setTabPreview] = useState<TabPreview | null>(null);
   const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
@@ -131,9 +201,27 @@ export function PopupApp() {
   const [whitelistBusy, setWhitelistBusy] = useState(false);
   const [personalHint, setPersonalHint] = useState<string | null>(null);
   const [whitelistHint, setWhitelistHint] = useState<string | null>(null);
+  const [explainBusy, setExplainBusy] = useState(false);
+  const [explainText, setExplainText] = useState<string | null>(null);
+  const [explainError, setExplainError] = useState<string | null>(null);
+  const [explainForKey, setExplainForKey] = useState<string | null>(null);
+  const [expandedLayerId, setExpandedLayerId] = useState<string | null>(null);
+
+  const clearExplain = useCallback(() => {
+    setExplainBusy(false);
+    setExplainText(null);
+    setExplainError(null);
+    setExplainForKey(null);
+  }, []);
+
+  const resetLayerExpansion = useCallback(() => {
+    setExpandedLayerId(null);
+  }, []);
 
   const runScan = useCallback(async () => {
     setScanPhase("loading");
+    clearExplain();
+    resetLayerExpansion();
     try {
       const data = await loadActiveTabPhishingAnalysis();
       setSnapshot(data);
@@ -144,7 +232,7 @@ export function PopupApp() {
       setTabPreview(preview);
       setScanPhase("idle");
     }
-  }, []);
+  }, [clearExplain, resetLayerExpansion]);
 
   useEffect(() => {
     let stillMounted = true;
@@ -155,6 +243,7 @@ export function PopupApp() {
         return;
       }
       setScanMode(settings.scanMode);
+      setExplanationMode(settings.explanationMode);
       if (settings.scanMode === "auto_when_ready") {
         setScanPhase("loading");
         try {
@@ -196,26 +285,42 @@ export function PopupApp() {
       if (raw === undefined || raw === null || typeof raw !== "object") {
         return;
       }
-      const nextMode = (raw as { scanMode?: ScanMode }).scanMode;
-      if (nextMode !== "manual" && nextMode !== "auto_when_ready") {
-        return;
+      const next = raw as {
+        scanMode?: ScanMode;
+        explanationMode?: ExplanationMode;
+        explainEnabled?: boolean;
+      };
+      const nextMode = next.scanMode;
+      if (nextMode === "manual" || nextMode === "auto_when_ready") {
+        setScanMode(nextMode);
+        if (nextMode === "auto_when_ready") {
+          void runScan();
+        } else {
+          setSnapshot(null);
+          setScanPhase("idle");
+          void loadActiveTabPreview().then((preview) => {
+            setTabPreview(preview);
+          });
+        }
       }
-      setScanMode(nextMode);
-      if (nextMode === "auto_when_ready") {
-        void runScan();
-        return;
+      if (
+        next.explanationMode === "off" ||
+        next.explanationMode === "technical" ||
+        next.explanationMode === "plain"
+      ) {
+        setExplanationMode(next.explanationMode);
+        clearExplain();
+      } else if (typeof next.explainEnabled === "boolean") {
+        const migrated = next.explainEnabled ? "plain" : "off";
+        setExplanationMode(migrated);
+        clearExplain();
       }
-      setSnapshot(null);
-      setScanPhase("idle");
-      void loadActiveTabPreview().then((preview) => {
-        setTabPreview(preview);
-      });
     }
     chrome.storage.onChanged.addListener(onStorageChange);
     return () => {
       chrome.storage.onChanged.removeListener(onStorageChange);
     };
-  }, [runScan]);
+  }, [runScan, clearExplain]);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -253,6 +358,47 @@ export function PopupApp() {
       cancelled = true;
     };
   }, [snapshot]);
+
+  useEffect(() => {
+    if (snapshot === null) {
+      return;
+    }
+    setExpandedLayerId(null);
+    const key = explainCacheKey(snapshot, explanationMode);
+    if (explainForKey !== null && explainForKey !== key) {
+      setExplainText(null);
+      setExplainForKey(null);
+      setExplainError(null);
+    }
+  }, [snapshot, explainForKey, explanationMode]);
+
+  async function handleExplain(snapshotForExplain: AnalysisSnapshot) {
+    const audience = explainAudienceForMode(explanationMode);
+    if (audience === null) {
+      return;
+    }
+
+    const cacheKey = explainCacheKey(snapshotForExplain, explanationMode);
+    if (explainForKey === cacheKey && explainText !== null) {
+      return;
+    }
+
+    setExplainBusy(true);
+    setExplainError(null);
+
+    try {
+      const payload = buildExplainPayload(snapshotForExplain, audience);
+      const response = await fetchExplain(getApiBaseUrl(), payload);
+      setExplainText(response.explanation);
+      setExplainForKey(cacheKey);
+    } catch {
+      setExplainText(null);
+      setExplainForKey(null);
+      setExplainError("Could not generate an explanation. Is the backend running?");
+    } finally {
+      setExplainBusy(false);
+    }
+  }
 
   async function handleTrustCurrentSite() {
     setWhitelistHint(null);
@@ -408,6 +554,16 @@ export function PopupApp() {
   const showRemoveTrustSection = pageOk && onWhitelist;
   const personalBlockDisabled = personalBusy;
   const whitelistDisabled = whitelistBusy;
+  const visibleLayers = layersForDisplay(snapshot.layers, explanationMode);
+  const layerCompact = explanationMode === "plain" || explanationMode === "technical";
+  const layerExpandable = explanationMode === "technical";
+  const showExplainSection = explanationMode === "plain" || explanationMode === "technical";
+  const findingsSectionTitle =
+    explanationMode === "technical" ? "Findings" : explanationMode === "plain" ? "Score breakdown" : "";
+
+  function toggleLayerExpanded(layerId: string) {
+    setExpandedLayerId((current) => (current === layerId ? null : layerId));
+  }
 
   return (
     <PopupSlideShell {...shellProps}>
@@ -442,9 +598,72 @@ export function PopupApp() {
           <span className="font-sans text-[10px] text-ink-faint">{snapshot.lastChecked}</span>
         </div>
 
-        {snapshot.layers.map((layer) => (
-          <LayerCard key={layer.id} layer={layer} />
-        ))}
+        {explanationMode !== "off" ? (
+          <div className="space-y-2 border-t border-surface-border pt-2">
+            {findingsSectionTitle !== "" ? (
+              <p className="font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+                {findingsSectionTitle}
+              </p>
+            ) : null}
+            {visibleLayers.length === 0 ? (
+              <p className="font-sans text-xs leading-snug text-ink-muted">
+                No layer contributed points to the score.
+              </p>
+            ) : (
+              visibleLayers.map((layer) => (
+                <LayerCard
+                  key={layer.id}
+                  layer={layer}
+                  compact={layerExpandable ? expandedLayerId !== layer.id : layerCompact}
+                  expandable={layerExpandable}
+                  expanded={expandedLayerId === layer.id}
+                  onToggle={
+                    layerExpandable
+                      ? () => {
+                          toggleLayerExpanded(layer.id);
+                        }
+                      : undefined
+                  }
+                />
+              ))
+            )}
+          </div>
+        ) : null}
+
+        {showExplainSection ? (
+          <div className="space-y-2 border-t border-surface-border pt-2">
+            <p className="font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">
+              {explanationMode === "plain" ? "Plain English" : "Summary"}
+            </p>
+            <button
+              type="button"
+              disabled={explainBusy}
+              onClick={() => {
+                void handleExplain(snapshot);
+              }}
+              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {explanationMode === "plain" ? (
+                <MessageCircle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+              ) : (
+                <Layers className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
+              )}
+              {explainBusy
+                ? "Generating…"
+                : explanationMode === "plain"
+                  ? "Explain in plain English"
+                  : "Summarize findings"}
+            </button>
+            {explainError ? (
+              <p className="font-sans text-[11px] leading-snug text-accent-danger">{explainError}</p>
+            ) : null}
+            {explainText ? (
+              <p className="rounded-md border border-surface-border bg-surface-elevated/60 px-3 py-2 font-sans text-xs leading-relaxed text-ink-muted">
+                {explainText}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
 
         {personalHint ? (
           <p className="font-sans text-[11px] leading-snug text-ink-muted">{personalHint}</p>

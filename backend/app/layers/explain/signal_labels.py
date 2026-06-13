@@ -1,0 +1,70 @@
+from __future__ import annotations
+
+# Short plain-English labels for rule ids.
+# If a rule is missing here, we fall back to the detail text from the scan.
+RULE_LABELS: dict[str, str] = {
+    # URL analyzer
+    "hosting_brand_matrix": (
+        "The page is on a free website builder but uses a well-known brand name"
+        " - like a copycat of the real company's site"
+    ),
+    "typosquatting": "The domain name is very similar to a well-known brand",
+    "nested_url_in_query": "The link hides another suspicious address inside it",
+    "suspicious_tld": "The domain uses a top-level domain often seen in scams",
+    "url_too_long": "The link is unusually long",
+    "many_subdomains": "The link has many subdomains, which can hide the real site",
+    "at_in_url": "The link uses a trick with the @ symbol to mislead you",
+    "ip_host": "The link uses a raw IP address instead of a normal website name",
+    "suspicious_encoding": "The link uses odd encoding that can hide its true destination",
+    "phishing_keywords": "The link contains words often used in fake login pages",
+    "high_entropy_hostname": "The domain name looks random or machine-generated",
+    "idn_homograph": "The link uses special characters that can look like a trusted site",
+    "unicode_normalization": "The link contains hidden or look-alike characters",
+    # Page template
+    "brand_page_host_mismatch": "The page mentions a known brand but is not on that brand's official website",
+    "visual_brand_mismatch": "The page logo looks like a known brand but the website address does not match",
+    "credential_form_on_free_hosting": "There is a login form on a free website builder platform",
+    "credential_form_on_http": "The login form is on an unencrypted HTTP page",
+    "invalid_form_action": "The login form sends data to an invalid or suspicious destination",
+    "http_form_action_on_https_page": "The page is HTTPS but the form submits over insecure HTTP",
+    "suspicious_submit_destination": "The login form sends data to a suspicious address",
+    "meta_refresh_cross_domain": "The page tries to redirect you to a different website",
+    "base_href_cross_domain": "The page is configured to load resources from another domain",
+    "canonical_host_mismatch": "The page claims to be one site but is hosted elsewhere",
+    "hidden_cross_origin_iframe": "A hidden frame loads content from another website",
+    "cross_origin_iframe": "A frame loads content from an external website",
+    "sensitive_field_collection": "The login page also asks for sensitive payment or identity details",
+    "excessive_hidden_inputs": "The login form has an unusually high number of hidden fields",
+    "hidden_password_field": "The password field is hidden from view",
+    "file_upload_with_login": "The login page also asks you to upload a file",
+    "external_resource_ratio": (
+        "Much of what you see on the page may not actually come from the site"
+        " shown in the address bar"
+    ),
+    "login_page_is_framed": "The login page is shown inside another site's frame",
+    "collection_failed": "We could not fully read the page structure",
+    # TLS
+    "no_https": "The site does not use HTTPS encryption",
+    "cert_expired": "The security certificate has expired",
+    "hostname_mismatch": "The certificate does not match this website name",
+    "self_signed": "The site uses a self-signed certificate",
+    "untrusted_chain": "The certificate is not from a trusted authority",
+    "cert_very_new": "The security certificate was issued very recently",
+    # Behavioral
+    "rapid_cross_domain_redirect": "The page redirected quickly to a different website",
+    "delayed_credential_form": "A login form appeared after the page loaded",
+    "dynamic_submit_destination": "The form's submit address changed after the page loaded",
+    "delayed_brand_injection": "Brand-related text appeared after the page loaded",
+}
+
+
+def label_for_rule(rule: str) -> str | None:
+    key = rule.strip().lower()
+    if key == "":
+        return None
+
+    text = RULE_LABELS.get(key)
+    if text is None:
+        return None
+
+    return text

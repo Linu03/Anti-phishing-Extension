@@ -9,6 +9,7 @@ export function buildTlsLayer(step: TlsStepResult): LayerSignal {
         label: "TLS / Certificate",
         contribution: step.score,
         detail: "No TLS certificate issues.",
+        findings: [],
       };
     }
 
@@ -23,6 +24,7 @@ export function buildTlsLayer(step: TlsStepResult): LayerSignal {
       label: "TLS / Certificate",
       contribution: step.score,
       detail: detailText,
+      findings: step.findings,
     };
   }
 

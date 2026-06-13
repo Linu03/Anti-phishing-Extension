@@ -56,6 +56,7 @@ export function buildPageTemplateLayer(step: PageTemplateStepResult): LayerSigna
       label: "Page template",
       contribution: clampContribution(step.score),
       detail: buildOkDetail(step),
+      findings: step.findings,
     };
   }
 
@@ -91,6 +92,10 @@ export function buildPageTemplateLayer(step: PageTemplateStepResult): LayerSigna
       label: "Page template",
       contribution,
       detail,
+      findings:
+        contribution > 0
+          ? [{ rule: RULE_COLLECTION_FAILED, points: contribution, detail }]
+          : [],
     };
   }
 

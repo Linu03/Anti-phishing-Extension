@@ -12,6 +12,13 @@ export function buildWhitelistLayer(step: WhitelistStepResult): LayerSignal {
       label: "Whitelist",
       contribution: POINTS_IF_TRUSTED,
       detail: "This site is on your trusted list.",
+      findings: [
+        {
+          rule: "whitelist_trusted",
+          points: POINTS_IF_TRUSTED,
+          detail: "This site is on your trusted list.",
+        },
+      ],
     };
   }
 

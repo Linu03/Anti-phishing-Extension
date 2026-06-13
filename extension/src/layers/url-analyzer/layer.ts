@@ -6,12 +6,13 @@ export function buildUrlAnalyzerLayer(step: UrlAnalyzerStepResult): LayerSignal 
     const riskPrefix = `URL phishing risk: ${step.riskLabel} (score ${step.score}/50).`;
 
     if (step.findings.length === 0) {
-      return {
-        id: "url-analyzer",
-        label: "URL analyzer",
-        contribution: step.score,
-        detail: `${riskPrefix} No suspicious URL patterns.`,
-      };
+    return {
+      id: "url-analyzer",
+      label: "URL analyzer",
+      contribution: step.score,
+      detail: `${riskPrefix} No suspicious URL patterns.`,
+      findings: [],
+    };
     }
 
     const lines: string[] = [];
@@ -25,6 +26,7 @@ export function buildUrlAnalyzerLayer(step: UrlAnalyzerStepResult): LayerSignal 
       label: "URL analyzer",
       contribution: step.score,
       detail: detailText,
+      findings: step.findings,
     };
   }
 
