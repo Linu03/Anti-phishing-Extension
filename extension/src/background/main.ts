@@ -13,9 +13,16 @@ import {
   storeRedirectEvidence,
   type RedirectEvidence,
 } from "../layers/behavioral/redirectEvidence";
-import { runFullTabAnalysis } from "../layers/analysis/runFullTabAnalysis";
+import {
+  clearAutoScanStateForTab,
+  MSG_REQUEST_TAB_RESCAN,
+  requestRescanForTab,
+  scheduleAutoScanForTab,
+  scanActiveTabIfAuto,
+} from "./autoScan";
 import { startBehaviorObserverForTab } from "../layers/behavioral/startObserverForTab";
 import { DEBUG_SCAN_REPORT_ENABLED } from "../debug/scanDebugIngest";
+import { runFullTabAnalysis } from "../layers/analysis/runFullTabAnalysis";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
 
@@ -35,6 +42,20 @@ const tabLoadMeta = new Map<number, TabLoadMeta>();
 /** TEMP DEBUG — wait for behavioral observer before auto scan-report. */
 const DEBUG_SCAN_WAIT_MS = 9500;
 const debugScanTimers = new Map<number, ReturnType<typeof setTimeout>>();
+
+chrome.storage.onChanged.addListener((changes, areaName) => {
+  if (areaName !== "local" || !changes.userSettings) {
+    return;
+  }
+  const raw = changes.userSettings.newValue;
+  if (raw === undefined || raw === null || typeof raw !== "object") {
+    return;
+  }
+  const scanMode = (raw as { scanMode?: string }).scanMode;
+  if (scanMode === "auto_when_ready") {
+    void scanActiveTabIfAuto();
+  }
+});
 
 function scheduleDebugScanReport(tabId: number, pageUrl: string, pageTitle: string): void {
   if (!DEBUG_SCAN_REPORT_ENABLED) {
@@ -138,6 +159,19 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
 
+  if (msg?.type === MSG_REQUEST_TAB_RESCAN) {
+    const tabId = msg.tabId;
+    if (typeof tabId !== "number") {
+      sendResponse({ ok: false });
+      return false;
+    }
+    void (async () => {
+      await requestRescanForTab(tabId);
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
   if (msg?.type === MSG_REMOVE_PERSONAL) {
     const tabId = sender.tab?.id;
     const url = sender.tab?.url;
@@ -191,6 +225,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 chrome.tabs.onRemoved.addListener((tabId) => {
   warnedUrlByTabId.delete(tabId);
   tabLoadMeta.delete(tabId);
+  clearAutoScanStateForTab(tabId);
   const debugTimer = debugScanTimers.get(tabId);
   if (debugTimer !== undefined) {
     clearTimeout(debugTimer);
@@ -202,9 +237,10 @@ chrome.tabs.onRemoved.addListener((tabId) => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   if (changeInfo.status === "loading") {
     const pageUrl = tab.url;
+    const prev = tabLoadMeta.get(tabId);
+    const newHost = pageUrl ? hostFromHttpUrl(pageUrl) : "";
+
     if (pageUrl && (pageUrl.startsWith("http://") || pageUrl.startsWith("https://"))) {
-      const prev = tabLoadMeta.get(tabId);
-      const newHost = hostFromHttpUrl(pageUrl);
       if (prev && newHost !== "" && prev.host !== newHost) {
         const elapsed = Date.now() - prev.loadedAt;
         if (elapsed > 0 && elapsed <= RAPID_REDIRECT_MS) {
@@ -219,8 +255,14 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       }
     }
 
-    warnedUrlByTabId.delete(tabId);
-    void clearBehaviorDiffForTab(tabId);
+    const hostChanged = prev !== undefined && newHost !== "" && prev.host !== newHost;
+    const firstLoad = prev === undefined;
+
+    if (hostChanged || firstLoad) {
+      warnedUrlByTabId.delete(tabId);
+      void clearBehaviorDiffForTab(tabId);
+      clearAutoScanStateForTab(tabId);
+    }
     return;
   }
 
@@ -259,6 +301,7 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 
   void maybeShowWarningForTab(tabId, pageUrl);
   void startBehaviorObserverForTab(tabId, pageUrl);
+  void scheduleAutoScanForTab(tabId, pageUrl, tab.title ?? "");
 });
 
 async function maybeShowWarningForTab(tabId: number, pageUrl: string) {

@@ -130,8 +130,8 @@ export function SettingsPanel() {
           <ScanModeOption
             mode="auto_when_ready"
             selected={scanMode === "auto_when_ready"}
-            title="Automatic when ready"
-            description="Scan this tab automatically when you open the popup."
+            title="Background scan"
+            description="Scan each site in the background when you visit it. Results appear when all layers finish (including behavioral). Medium or high risk shows an in-page alert and a badge on the extension icon."
             icon={<Timer className="h-4 w-4" strokeWidth={1.5} />}
             onSelect={(mode) => {
               void handleSelectScanMode(mode);

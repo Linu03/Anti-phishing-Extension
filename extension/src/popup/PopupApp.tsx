@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Ban, ChevronRight, Layers, MessageCircle, ScanLine, Shield, ShieldCheck } from "lucide-react";
 import { loadActiveTabPhishingAnalysis } from "../layers/analysis/loadActiveTabAnalysis";
+import {
+  isTabScanCacheStorageKey,
+  loadActiveTabScanState,
+  requestBackgroundRescan,
+  snapshotFromScanState,
+} from "../layers/analysis/loadActiveTabScanState";
 import { loadActiveTabPreview, type TabPreview } from "../layers/analysis/loadActiveTabPreview";
 import { getApiBaseUrl } from "../layers/apiBase";
 import { fetchExplain } from "../layers/explain/api";
@@ -243,6 +249,7 @@ export function PopupApp() {
   const [explanationMode, setExplanationMode] = useState<ExplanationMode>("off");
   const [scanPhase, setScanPhase] = useState<ScanPhase>("idle");
   const [tabPreview, setTabPreview] = useState<TabPreview | null>(null);
+  const [activeTabId, setActiveTabId] = useState<number | null>(null);
   const [snapshot, setSnapshot] = useState<AnalysisSnapshot | null>(null);
   const [onPersonalList, setOnPersonalList] = useState(false);
   const [onWhitelist, setOnWhitelist] = useState(false);
@@ -270,9 +277,20 @@ export function PopupApp() {
   }, []);
 
   const runScan = useCallback(async () => {
-    setScanPhase("loading");
     clearExplain();
     resetLayerExpansion();
+    setScanPhase("loading");
+
+    if (scanMode === "auto_when_ready" && activeTabId !== null) {
+      try {
+        await requestBackgroundRescan(activeTabId);
+      } catch {
+        setSnapshot(null);
+        setScanPhase("idle");
+      }
+      return;
+    }
+
     try {
       const data = await loadActiveTabPhishingAnalysis();
       setSnapshot(data);
@@ -283,7 +301,35 @@ export function PopupApp() {
       setTabPreview(preview);
       setScanPhase("idle");
     }
-  }, [clearExplain, resetLayerExpansion]);
+  }, [activeTabId, clearExplain, resetLayerExpansion, scanMode]);
+
+  const applyAutoScanState = useCallback((state: Awaited<ReturnType<typeof loadActiveTabScanState>>) => {
+    setTabPreview(state.preview);
+    setActiveTabId(state.tabId);
+    const cached = snapshotFromScanState(state);
+    if (cached !== null) {
+      setSnapshot(cached);
+      setScanPhase("ready");
+      return;
+    }
+    if (state.cacheMatchesTab && state.cache?.status === "scanning") {
+      setSnapshot(null);
+      setScanPhase("loading");
+      return;
+    }
+    if (state.cacheMatchesTab && state.cache?.status === "error") {
+      setSnapshot(null);
+      setScanPhase("idle");
+      return;
+    }
+    setSnapshot(null);
+    if (state.tabId !== null) {
+      setScanPhase("loading");
+      void requestBackgroundRescan(state.tabId);
+    } else {
+      setScanPhase("idle");
+    }
+  }, []);
 
   useEffect(() => {
     let stillMounted = true;
@@ -324,18 +370,9 @@ export function PopupApp() {
       }
 
       if (settings.scanMode === "auto_when_ready") {
-        setScanPhase("loading");
-        try {
-          const data = await loadActiveTabPhishingAnalysis();
-          if (stillMounted) {
-            setSnapshot(data);
-            setScanPhase("ready");
-          }
-        } catch {
-          if (stillMounted) {
-            setSnapshot(null);
-            setScanPhase("idle");
-          }
+        const scanState = await loadActiveTabScanState();
+        if (stillMounted) {
+          applyAutoScanState(scanState);
         }
         return;
       }
@@ -347,7 +384,54 @@ export function PopupApp() {
     return () => {
       stillMounted = false;
     };
-  }, []);
+  }, [applyAutoScanState]);
+
+  useEffect(() => {
+    if (scanMode !== "auto_when_ready" || activeTabId === null) {
+      return;
+    }
+
+    function onSessionStorageChange(
+      changes: { [key: string]: chrome.storage.StorageChange },
+      areaName: string,
+    ) {
+      if (areaName !== "session") {
+        return;
+      }
+      const cacheKey = `afsTabScan_${activeTabId}`;
+      if (changes[cacheKey] === undefined && !Object.keys(changes).some(isTabScanCacheStorageKey)) {
+        return;
+      }
+      void loadActiveTabScanState().then((state) => {
+        if (state.tabId === activeTabId) {
+          applyAutoScanState(state);
+        }
+      });
+    }
+
+    chrome.storage.onChanged.addListener(onSessionStorageChange);
+    return () => {
+      chrome.storage.onChanged.removeListener(onSessionStorageChange);
+    };
+  }, [activeTabId, applyAutoScanState, scanMode]);
+
+  useEffect(() => {
+    if (scanMode !== "auto_when_ready" || scanPhase !== "loading" || activeTabId === null) {
+      return;
+    }
+
+    const poll = window.setInterval(() => {
+      void loadActiveTabScanState().then((state) => {
+        if (state.tabId === activeTabId) {
+          applyAutoScanState(state);
+        }
+      });
+    }, 1500);
+
+    return () => {
+      window.clearInterval(poll);
+    };
+  }, [activeTabId, applyAutoScanState, scanMode, scanPhase]);
 
   useEffect(() => {
     function onStorageChange(changes: { [key: string]: chrome.storage.StorageChange }, areaName: string) {
@@ -367,7 +451,7 @@ export function PopupApp() {
       if (nextMode === "manual" || nextMode === "auto_when_ready") {
         setScanMode(nextMode);
         if (nextMode === "auto_when_ready") {
-          void runScan();
+          void loadActiveTabScanState().then(applyAutoScanState);
         } else {
           setSnapshot(null);
           setScanPhase("idle");
@@ -393,7 +477,7 @@ export function PopupApp() {
     return () => {
       chrome.storage.onChanged.removeListener(onStorageChange);
     };
-  }, [runScan, clearExplain]);
+  }, [applyAutoScanState, clearExplain]);
 
   useEffect(() => {
     if (snapshot === null) {
@@ -530,8 +614,8 @@ export function PopupApp() {
       setWhitelistHint("Removed from trusted list.");
       clearExplain();
       resetLayerExpansion();
-      if (scanMode === "auto_when_ready") {
-        void runScan();
+      if (scanMode === "auto_when_ready" && activeTabId !== null) {
+        void requestBackgroundRescan(activeTabId);
       } else {
         setSnapshot(null);
         setScanPhase("idle");
@@ -620,7 +704,9 @@ export function PopupApp() {
       <PopupSlideShell {...shellProps}>
         <div className="flex items-center gap-3 bg-surface-elevated/50 px-4 py-3">
           <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
-          <p className="font-sans text-sm text-ink-muted">Checking this tab…</p>
+          <p className="font-sans text-sm text-ink-muted">
+            {scanMode === "auto_when_ready" ? "Scanning in background…" : "Checking this tab…"}
+          </p>
         </div>
       </PopupSlideShell>
     );
@@ -643,9 +729,21 @@ export function PopupApp() {
   if (snapshot === null) {
     return (
       <PopupSlideShell {...shellProps}>
-        <div className="flex items-center gap-3 bg-surface-elevated/50 px-4 py-3">
-          <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
-          <p className="font-sans text-sm text-ink-muted">Could not load analysis.</p>
+        <div className="space-y-3 px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
+            <p className="font-sans text-sm text-ink-muted">Could not load analysis.</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              void runScan();
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/80 px-3 py-2.5 font-sans text-sm font-medium text-ink-muted transition hover:bg-surface-elevated hover:text-ink"
+          >
+            <ScanLine className="h-4 w-4 shrink-0" strokeWidth={2} />
+            Scan again
+          </button>
         </div>
       </PopupSlideShell>
     );
@@ -662,7 +760,8 @@ export function PopupApp() {
   const showFindingsSection = explanationMode === "technical";
   const showExplainSection = explanationMode === "plain" || explanationMode === "technical";
 
-  const showActionBar = scanMode === "manual" || showTrustSection || showPersonalBlockSection;
+  const showActionBar =
+    scanMode === "manual" || scanMode === "auto_when_ready" || showTrustSection || showPersonalBlockSection;
 
   function toggleLayerExpanded(layerId: string) {
     setExpandedLayerId((current) => (current === layerId ? null : layerId));
@@ -791,7 +890,7 @@ export function PopupApp() {
               </div>
             ) : null}
 
-            {scanMode === "manual" ? (
+            {(scanMode === "manual" || scanMode === "auto_when_ready") ? (
               <button
                 type="button"
                 onClick={() => {

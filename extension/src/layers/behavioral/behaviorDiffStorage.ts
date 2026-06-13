@@ -20,7 +20,7 @@ export function behaviorDiffKey(tabId: number): string {
 
 export const MSG_STORE_BEHAVIOR_DIFF = "AFS_STORE_BEHAVIOR_DIFF";
 
-function normalizePageUrl(url: string): string {
+export function normalizeScanPageUrl(url: string): string {
   const withoutHash = url.trim().split("#")[0];
   try {
     const parsed = new URL(withoutHash);
@@ -75,7 +75,7 @@ function mergeRedirectEvidence(
   if (redirect === null) {
     return diff;
   }
-  if (normalizePageUrl(redirect.pageUrl) !== normalizePageUrl(pageUrl)) {
+  if (normalizeScanPageUrl(redirect.pageUrl) !== normalizeScanPageUrl(pageUrl)) {
     return diff;
   }
   if (redirect.start_host === "" || redirect.end_host === "" || redirect.redirect_ms <= 0) {
@@ -126,7 +126,7 @@ async function buildMergedDiff(tabId: number, pageUrl: string, base: BehaviorDif
 }
 
 export async function getBehaviorDiffForTab(tabId: number, pageUrl: string): Promise<BehaviorDiff | null> {
-  const expected = normalizePageUrl(pageUrl);
+  const expected = normalizeScanPageUrl(pageUrl);
   if (expected === "") {
     return null;
   }
@@ -137,7 +137,7 @@ export async function getBehaviorDiffForTab(tabId: number, pageUrl: string): Pro
     const record = await readStoredRecord(tabId);
 
     if (record !== null) {
-      const actual = normalizePageUrl(record.pageUrl);
+      const actual = normalizeScanPageUrl(record.pageUrl);
       if (actual === expected && record.status === "ready") {
         return buildMergedDiff(tabId, pageUrl, record.diff);
       }
@@ -147,7 +147,7 @@ export async function getBehaviorDiffForTab(tabId: number, pageUrl: string): Pro
   }
 
   const redirect = await readRedirectEvidence(tabId);
-  if (redirect !== null && normalizePageUrl(redirect.pageUrl) === expected) {
+  if (redirect !== null && normalizeScanPageUrl(redirect.pageUrl) === expected) {
     return buildMergedDiff(tabId, pageUrl, emptyBehaviorDiff());
   }
 

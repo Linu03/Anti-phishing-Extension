@@ -12,14 +12,18 @@ import type { PageTemplateStepResult } from "./types";
 export async function runPageTemplateStep(
   pageUrl: string,
   context: PriorLayersContextPayload,
+  tabId?: number,
 ): Promise<PageTemplateStepResult> {
   if (isRestrictedPageUrl(pageUrl)) {
     return { status: "skipped", kind: "restricted" };
   }
 
-  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-  const tabId = tabs[0]?.id;
-  if (tabId === undefined) {
+  let effectiveTabId = tabId;
+  if (effectiveTabId === undefined) {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    effectiveTabId = tabs[0]?.id;
+  }
+  if (effectiveTabId === undefined) {
     return {
       status: "collection_failed",
       kind: context.whitelist_trusted ? "trusted" : "untrusted",
@@ -30,7 +34,7 @@ export async function runPageTemplateStep(
   const brandIds = await getCachedBrandIds(baseUrl);
   const scriptFpOrigins = await getCachedScriptFpOrigins(baseUrl);
 
-  let snapshot = await collectPageSnapshotFromTab(tabId, brandIds, scriptFpOrigins);
+  let snapshot = await collectPageSnapshotFromTab(effectiveTabId, brandIds, scriptFpOrigins);
   if (snapshot === null) {
     snapshot = buildEmptySnapshot(pageUrl, "inject_failed");
   }

@@ -66,7 +66,7 @@ export async function runFullTabAnalysis(
     tlsStep,
   );
 
-  const pageTemplateStep = await runPageTemplateStep(pageUrl, priorContext);
+  const pageTemplateStep = await runPageTemplateStep(pageUrl, priorContext, activeTabId);
 
   const behavioralContext: BehavioralContextPayload = {
     page_host: hostFromInput(pageUrl),
