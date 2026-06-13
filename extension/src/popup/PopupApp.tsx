@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { AlertTriangle, ChevronRight, Layers, ListPlus, MessageCircle, ScanLine, Shield, ShieldCheck, ShieldOff, ShieldPlus } from "lucide-react";
+import { AlertTriangle, Ban, ChevronRight, Layers, MessageCircle, ScanLine, Shield, ShieldCheck } from "lucide-react";
 import { loadActiveTabPhishingAnalysis } from "../layers/analysis/loadActiveTabAnalysis";
 import { loadActiveTabPreview, type TabPreview } from "../layers/analysis/loadActiveTabPreview";
 import { getApiBaseUrl } from "../layers/apiBase";
@@ -14,61 +14,71 @@ import { addWhitelist, isUrlWhitelisted, removeWhitelist } from "../layers/white
 import { addPersonalBlock, isUrlPersonallyBlocked } from "../user-lists/personalBlocklist";
 import { PopupSlideShell } from "./PopupSlideShell";
 
-function VerdictBadge({ verdict }: { verdict: Verdict }) {
-  const base = "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 font-sans text-xs font-semibold";
+function verdictPillClass(verdict: Verdict): string {
   if (verdict === "safe") {
-    return (
-      <span className={`${base} border-emerald-900/40 bg-emerald-950/30 text-accent-safe`}>
-        <ShieldCheck className="h-3.5 w-3.5" strokeWidth={2} />
-        {verdictLabel(verdict)}
-      </span>
-    );
+    return "border-emerald-900/40 bg-emerald-950/30 text-accent-safe";
   }
   if (verdict === "caution") {
-    return (
-      <span className={`${base} border-amber-900/30 bg-amber-950/20 text-accent-warn`}>
-        <AlertTriangle className="h-3.5 w-3.5" strokeWidth={2} />
-        {verdictLabel(verdict)}
-      </span>
-    );
+    return "border-amber-900/30 bg-amber-950/20 text-accent-warn";
   }
-  return (
-    <span className={`${base} border-red-900/30 bg-red-950/20 text-accent-danger`}>
-      <ShieldOff className="h-3.5 w-3.5" strokeWidth={2} />
-      {verdictLabel(verdict)}
-    </span>
-  );
+  return "border-red-900/40 bg-red-950/35 text-red-300";
 }
 
-function ScoreMini({ score }: { score: number }) {
+function VerdictIcon({ verdict }: { verdict: Verdict }) {
+  if (verdict === "safe") {
+    return <ShieldCheck className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />;
+  }
+  return <AlertTriangle className="h-3.5 w-3.5 shrink-0" strokeWidth={2} aria-hidden />;
+}
+
+function VerdictRiskPanel({
+  verdict,
+  score,
+  lastChecked,
+}: {
+  verdict: Verdict;
+  score: number;
+  lastChecked: string;
+}) {
+  const [showScore, setShowScore] = useState(false);
   const hue = scoreHue(score);
   let pct = score;
   if (pct < 0) pct = 0;
   if (pct > 100) pct = 100;
+
   return (
-    <div className="flex shrink-0 flex-col items-center">
-      <div className="relative h-12 w-12">
-        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 100 100" aria-hidden>
-          <circle cx="50" cy="50" r="40" fill="none" stroke="#342f2a" strokeWidth="6" />
-          <circle
-            cx="50"
-            cy="50"
-            r="40"
-            fill="none"
-            stroke={hue}
-            strokeWidth="6"
-            strokeLinecap="round"
-            strokeDasharray={`${(pct / 100) * 251} 251`}
-          />
-        </svg>
-        <span
-          className="absolute inset-0 flex items-center justify-center font-serif text-sm font-semibold tabular-nums"
-          style={{ color: hue }}
+    <div className="space-y-2 border-t border-surface-border pt-2">
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-expanded={showScore}
+          onClick={() => {
+            setShowScore((open) => !open);
+          }}
+          className={`flex min-w-0 flex-1 items-center gap-2 rounded-full border px-3 py-1.5 font-sans text-xs transition hover:brightness-110 ${verdictPillClass(verdict)}`}
         >
-          {score}
-        </span>
+          <VerdictIcon verdict={verdict} />
+          <span className="shrink-0 font-semibold">{verdictLabel(verdict)}</span>
+          <span className="truncate font-normal text-ink-faint">
+            {showScore ? "tap to hide" : "tap for details"}
+          </span>
+        </button>
+        <span className="shrink-0 font-sans text-[10px] text-ink-faint">{lastChecked}</span>
       </div>
-      <span className="mt-1 font-sans text-[9px] uppercase tracking-wider text-ink-faint">score</span>
+
+      {showScore ? (
+        <div className="rounded-lg border border-surface-border bg-surface-elevated/80 px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="font-sans text-xs text-ink-muted">Risk score</span>
+            <span className="font-sans text-sm font-semibold tabular-nums" style={{ color: hue }}>
+              {score} / 100
+            </span>
+          </div>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#342f2a]" aria-hidden>
+            <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: hue }} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -163,7 +173,7 @@ function explainAudienceForMode(mode: ExplanationMode): "plain" | "technical" | 
 
 function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview | null; busy: boolean; onScan: () => void }) {
   return (
-    <div className="space-y-3 px-4 py-4">
+    <div className="space-y-3 px-4 py-2.5">
       {tabPreview ? (
         <div className="space-y-1">
           <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={tabPreview.title || undefined}>
@@ -174,7 +184,6 @@ function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview
           </p>
         </div>
       ) : null}
-      <p className="font-sans text-xs leading-snug text-ink-muted">Manual scan is on. Press the button below to analyze this tab.</p>
       <button
         type="button"
         disabled={busy}
@@ -555,11 +564,12 @@ export function PopupApp() {
   const personalBlockDisabled = personalBusy;
   const whitelistDisabled = whitelistBusy;
   const visibleLayers = layersForDisplay(snapshot.layers, explanationMode);
-  const layerCompact = explanationMode === "plain" || explanationMode === "technical";
   const layerExpandable = explanationMode === "technical";
+  const showFindingsSection = explanationMode === "technical";
   const showExplainSection = explanationMode === "plain" || explanationMode === "technical";
-  const findingsSectionTitle =
-    explanationMode === "technical" ? "Findings" : explanationMode === "plain" ? "Score breakdown" : "";
+
+  const showActionBar =
+    scanMode === "manual" || showTrustSection || showRemoveTrustSection || showPersonalBlockSection;
 
   function toggleLayerExpanded(layerId: string) {
     setExpandedLayerId((current) => (current === layerId ? null : layerId));
@@ -568,43 +578,25 @@ export function PopupApp() {
   return (
     <PopupSlideShell {...shellProps}>
       <div className="space-y-2 px-4 py-2.5">
-        {scanMode === "manual" ? (
-          <button
-            type="button"
-            onClick={() => {
-              void runScan();
-            }}
-            className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <ScanLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-            Scan again
-          </button>
-        ) : null}
-
-        <div className="flex gap-3">
-          <div className="min-w-0 flex-1 space-y-1">
-            <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={snapshot.pageTitle || undefined}>
-              {snapshot.pageTitle?.trim() || "Untitled tab"}
-            </p>
-            <p className="line-clamp-2 break-all font-sans text-[11px] leading-snug text-ink-muted" title={snapshot.pageUrl}>
-              {snapshot.pageUrl}
-            </p>
-          </div>
-          <ScoreMini score={snapshot.threatScore} />
+        <div className="space-y-1">
+          <p className="line-clamp-2 font-serif text-sm font-medium leading-snug text-ink" title={snapshot.pageTitle || undefined}>
+            {snapshot.pageTitle?.trim() || "Untitled tab"}
+          </p>
+          <p className="line-clamp-2 break-all font-sans text-[11px] leading-snug text-ink-muted" title={snapshot.pageUrl}>
+            {snapshot.pageUrl}
+          </p>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-surface-border pt-2">
-          <VerdictBadge verdict={verdict} />
-          <span className="font-sans text-[10px] text-ink-faint">{snapshot.lastChecked}</span>
-        </div>
+        <VerdictRiskPanel
+          key={`${snapshot.pageUrl}|${snapshot.lastChecked}|${snapshot.threatScore}`}
+          verdict={verdict}
+          score={snapshot.threatScore}
+          lastChecked={snapshot.lastChecked}
+        />
 
-        {explanationMode !== "off" ? (
+        {showFindingsSection ? (
           <div className="space-y-2 border-t border-surface-border pt-2">
-            {findingsSectionTitle !== "" ? (
-              <p className="font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">
-                {findingsSectionTitle}
-              </p>
-            ) : null}
+            <p className="font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Findings</p>
             {visibleLayers.length === 0 ? (
               <p className="font-sans text-xs leading-snug text-ink-muted">
                 No layer contributed points to the score.
@@ -614,16 +606,12 @@ export function PopupApp() {
                 <LayerCard
                   key={layer.id}
                   layer={layer}
-                  compact={layerExpandable ? expandedLayerId !== layer.id : layerCompact}
+                  compact={expandedLayerId !== layer.id}
                   expandable={layerExpandable}
                   expanded={expandedLayerId === layer.id}
-                  onToggle={
-                    layerExpandable
-                      ? () => {
-                          toggleLayerExpanded(layer.id);
-                        }
-                      : undefined
-                  }
+                  onToggle={() => {
+                    toggleLayerExpanded(layer.id);
+                  }}
                 />
               ))
             )}
@@ -672,57 +660,72 @@ export function PopupApp() {
           <p className="font-sans text-[11px] leading-snug text-ink-muted">{whitelistHint}</p>
         ) : null}
 
-        {showTrustSection || showRemoveTrustSection || showPersonalBlockSection ? (
+        {showActionBar ? (
           <div className="space-y-2 border-t border-surface-border pt-2">
-        {showTrustSection ? (
-          <div>
-            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
-            <button
-              type="button"
-              disabled={whitelistDisabled}
-              onClick={() => {
-                void handleTrustCurrentSite();
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ShieldPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-              Trust this site
-            </button>
-          </div>
-        ) : null}
+            {showPersonalBlockSection || showTrustSection || showRemoveTrustSection ? (
+              <div
+                className={
+                  showPersonalBlockSection && (showTrustSection || showRemoveTrustSection)
+                    ? "grid grid-cols-2 gap-2"
+                    : "grid grid-cols-1 gap-2"
+                }
+              >
+                {showPersonalBlockSection ? (
+                  <button
+                    type="button"
+                    disabled={personalBlockDisabled}
+                    onClick={() => {
+                      void handleAddCurrentSiteToPersonalList();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-red-900/50 bg-red-950/35 px-3 py-2.5 font-sans text-sm font-medium text-red-300 transition hover:bg-red-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <Ban className="h-4 w-4 shrink-0" strokeWidth={2} />
+                    Block site
+                  </button>
+                ) : null}
 
-        {showRemoveTrustSection ? (
-          <div className="pt-1">
-            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Trusted sites</p>
-            <button
-              type="button"
-              disabled={whitelistDisabled}
-              onClick={() => {
-                void handleRemoveTrustCurrentSite();
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-emerald-900/40 bg-emerald-950/20 px-3 py-1.5 font-sans text-xs font-semibold text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              Remove from trusted list
-            </button>
-          </div>
-        ) : null}
+                {showTrustSection ? (
+                  <button
+                    type="button"
+                    disabled={whitelistDisabled}
+                    onClick={() => {
+                      void handleTrustCurrentSite();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/80 px-3 py-2.5 font-sans text-sm font-medium text-ink-muted transition hover:bg-surface-elevated hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} />
+                    Trust site
+                  </button>
+                ) : null}
 
-        {showPersonalBlockSection ? (
-          <div className="pt-1">
-            <p className="mb-1 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">My blocklist</p>
-            <button
-              type="button"
-              disabled={personalBlockDisabled}
-              onClick={() => {
-                void handleAddCurrentSiteToPersonalList();
-              }}
-              className="flex w-full items-center justify-center gap-2 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-1.5 font-sans text-xs font-semibold text-ink transition hover:bg-surface-elevated disabled:cursor-not-allowed disabled:opacity-50"
-            >
-              <ListPlus className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
-              Block this site (my list)
-            </button>
-          </div>
-        ) : null}
+                {showRemoveTrustSection ? (
+                  <button
+                    type="button"
+                    disabled={whitelistDisabled}
+                    onClick={() => {
+                      void handleRemoveTrustCurrentSite();
+                    }}
+                    className="flex items-center justify-center gap-2 rounded-lg border border-emerald-900/40 bg-emerald-950/20 px-3 py-2.5 font-sans text-sm font-medium text-accent-safe transition hover:bg-emerald-950/30 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <ShieldCheck className="h-4 w-4 shrink-0" strokeWidth={2} />
+                    Remove trust
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+
+            {scanMode === "manual" ? (
+              <button
+                type="button"
+                onClick={() => {
+                  void runScan();
+                }}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-surface-border bg-surface-elevated/80 px-3 py-2.5 font-sans text-sm font-medium text-ink-muted transition hover:bg-surface-elevated hover:text-ink disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <ScanLine className="h-4 w-4 shrink-0" strokeWidth={2} />
+                Scan again
+              </button>
+            ) : null}
           </div>
         ) : null}
       </div>

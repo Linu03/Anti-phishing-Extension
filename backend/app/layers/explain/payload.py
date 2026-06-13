@@ -1,7 +1,23 @@
 from __future__ import annotations
 
+import re
+
 from app.layers.explain.schemas import ExplainLayerInput, ExplainRequest
-from app.layers.explain.signal_labels import label_for_rule
+from app.layers.explain.signal_labels import label_for_rule, technical_label_for_rule
+
+_INTERNAL_DETAIL_RE = re.compile(
+    r"(?:"
+    r"URL phishing risk:\s*\w+\s*|"
+    r"\(score\s+\d+/\d+\)|"
+    r"\btier\s+[A-Z]\b|"
+    r"hosting_type=\S+|"
+    r"brand=\w+|"
+    r"registered=\S+"
+    r")",
+    re.IGNORECASE,
+)
+
+_CONTRIBUTION_RE = re.compile(r"\(\+\d+\)|\(-\d+\)")
 
 
 def verdict_label(verdict: str) -> str:
@@ -44,6 +60,51 @@ def _signals_from_layer(layer: ExplainLayerInput) -> list[str]:
     return signals
 
 
+def sanitize_technical_detail(text: str) -> str:
+    cleaned = _INTERNAL_DETAIL_RE.sub("", text.strip())
+    cleaned = _CONTRIBUTION_RE.sub("", cleaned)
+    cleaned = re.sub(r"\s+", " ", cleaned).strip(" .;")
+    if cleaned == "":
+        return ""
+
+    parts = [part.strip() for part in re.split(r"[;.]", cleaned) if part.strip()]
+    for part in parts:
+        if len(part) >= 20:
+            return part
+    return parts[0] if parts else cleaned
+
+
+def _technical_signals_from_layer(layer: ExplainLayerInput) -> list[str]:
+    signals: list[str] = []
+    seen: set[str] = set()
+
+    for finding in layer.findings:
+        if finding.points == 0:
+            continue
+
+        label = technical_label_for_rule(finding.rule)
+        if label is not None:
+            key = label.lower()
+            if key not in seen:
+                seen.add(key)
+                signals.append(label)
+            continue
+
+        detail = sanitize_technical_detail(finding.detail)
+        if detail != "":
+            key = detail.lower()
+            if key not in seen:
+                seen.add(key)
+                signals.append(detail)
+
+    if len(signals) == 0 and layer.contribution != 0:
+        detail = sanitize_technical_detail(layer.detail)
+        if detail != "":
+            signals.append(detail)
+
+    return signals
+
+
 def _technical_layer_bullet(layer: ExplainLayerInput) -> str | None:
     if layer.contribution == 0:
         return None
@@ -54,26 +115,11 @@ def _technical_layer_bullet(layer: ExplainLayerInput) -> str | None:
     if label == "":
         label = "Layer"
 
-    contrib = layer.contribution
-    if contrib > 0:
-        contrib_text = f"+{contrib}"
-    else:
-        contrib_text = str(contrib)
+    signals = _technical_signals_from_layer(layer)
+    if len(signals) == 0:
+        return None
 
-    rules: list[str] = []
-    for finding in layer.findings:
-        rule = finding.rule.strip()
-        if rule != "" and finding.points != 0 and rule not in rules:
-            rules.append(rule)
-
-    detail = layer.detail.strip()
-    head = f"{label} ({contrib_text})"
-    if len(rules) > 0:
-        head = f"{head}, rules: {', '.join(rules)}"
-
-    if detail != "":
-        return f"{head}: {detail}"
-    return head
+    return f"{label}: {'; '.join(signals)}"
 
 
 def build_technical_bullets(request: ExplainRequest) -> list[str]:
@@ -114,15 +160,15 @@ def build_prompt_user_text(request: ExplainRequest) -> str:
     if request.audience == "technical":
         bullets = build_technical_bullets(request)
         closing = (
-            "Write a short technical summary in full sentences for an analyst. "
-            "One bullet = one layer that contributed points. Synthesize across layers; "
-            "do not copy bullet text verbatim or list pipe-separated fields."
+            "Write a short technical summary in 2 to 4 connected sentences. "
+            "Synthesize across layers into coherent prose. Do not quote the lines "
+            "above verbatim, list rule ids, or mention numeric scores."
         )
     else:
         bullets = build_signal_bullets(request)
         closing = (
-            "Write a short explanation for a non-technical user. "
-            "Translate each warning into plain everyday language."
+            "Write a very short explanation (2-3 sentences) for a non-technical user. "
+            "Focus on the main risk in plain language — do not list every bullet."
         )
 
     if len(bullets) == 0:
@@ -135,9 +181,8 @@ def build_prompt_user_text(request: ExplainRequest) -> str:
 
     return (
         f"Website: {host}\n"
-        f"Overall score: {request.threat_score} out of 100\n"
         f"Risk level: {verdict_label(request.verdict)}\n"
-        f"Warning signals:\n"
+        f"Contributing findings:\n"
         f"{bullet_text}\n"
         f"\n"
         f"{closing}"

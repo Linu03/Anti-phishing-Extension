@@ -1,9 +1,9 @@
 import type { Verdict } from "./types";
 
 export function verdictLabel(v: Verdict): string {
-  if (v === "safe") return "Low";
-  if (v === "caution") return "Medium";
-  return "High";
+  if (v === "safe") return "Low risk";
+  if (v === "caution") return "Medium risk";
+  return "High risk";
 }
 
 export function verdictFromScore(score: number): Verdict {

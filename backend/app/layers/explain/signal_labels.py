@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-# Short plain-English labels for rule ids.
+import re
+
+# Short plain-English labels for rule ids (non-technical audience).
 # If a rule is missing here, we fall back to the detail text from the scan.
 RULE_LABELS: dict[str, str] = {
     # URL analyzer
@@ -57,6 +59,54 @@ RULE_LABELS: dict[str, str] = {
     "delayed_brand_injection": "Brand-related text appeared after the page loaded",
 }
 
+# Concise technical phrases for analyst summaries (no scores or matrix fields).
+TECHNICAL_RULE_LABELS: dict[str, str] = {
+    "hosting_brand_matrix": (
+        "Hosted on a free or suspicious site-builder domain without a matching brand in the hostname"
+    ),
+    "typosquatting": "Hostname closely resembles a well-known brand (typosquatting)",
+    "nested_url_in_query": "Nested URL embedded in query parameters",
+    "suspicious_tld": "Top-level domain commonly associated with abuse",
+    "url_too_long": "Unusually long URL structure",
+    "many_subdomains": "Excessive subdomain depth",
+    "at_in_url": "Userinfo (@) trick in the URL",
+    "ip_host": "Raw IP address used as host",
+    "suspicious_encoding": "Suspicious URL encoding",
+    "phishing_keywords": "Phishing-related keywords in the URL",
+    "high_entropy_hostname": "High-entropy or machine-generated hostname",
+    "idn_homograph": "IDN homograph characters in the hostname",
+    "unicode_normalization": "Unicode normalization anomaly in the URL",
+    "brand_page_host_mismatch": "Page content references a brand not present in the hostname",
+    "visual_brand_mismatch": "Page logo matches a known brand but the hostname does not reference it",
+    "credential_form_on_free_hosting": "Credential form on a free hosting or site-builder domain",
+    "credential_form_on_http": "Credential form submitted over unencrypted HTTP",
+    "invalid_form_action": "Form action points to an invalid or suspicious destination",
+    "http_form_action_on_https_page": "HTTPS page submits credentials over HTTP",
+    "suspicious_submit_destination": "Form submits to a suspicious external destination",
+    "meta_refresh_cross_domain": "Cross-domain meta refresh redirect",
+    "base_href_cross_domain": "Base href points to a different domain",
+    "canonical_host_mismatch": "Canonical URL host differs from the page host",
+    "hidden_cross_origin_iframe": "Hidden cross-origin iframe",
+    "cross_origin_iframe": "Cross-origin iframe embedding external content",
+    "sensitive_field_collection": "Login form collects unusually sensitive fields",
+    "excessive_hidden_inputs": "Unusually high number of hidden form inputs",
+    "hidden_password_field": "Password field hidden from view",
+    "file_upload_with_login": "File upload combined with login fields",
+    "external_resource_ratio": "Most page resources load from external domains",
+    "login_page_is_framed": "Login UI embedded inside a third-party frame",
+    "collection_failed": "Page structure could not be fully collected",
+    "no_https": "Site not served over HTTPS",
+    "cert_expired": "TLS certificate expired",
+    "hostname_mismatch": "TLS certificate hostname mismatch",
+    "self_signed": "Self-signed TLS certificate",
+    "untrusted_chain": "TLS certificate chain not trusted",
+    "cert_very_new": "Recently issued TLS certificate",
+    "rapid_cross_domain_redirect": "Rapid cross-domain redirect observed",
+    "delayed_credential_form": "Credential form injected after initial load",
+    "dynamic_submit_destination": "Form submit destination changed after load",
+    "delayed_brand_injection": "Brand-related content injected after load",
+}
+
 
 def label_for_rule(rule: str) -> str | None:
     key = rule.strip().lower()
@@ -64,6 +114,18 @@ def label_for_rule(rule: str) -> str | None:
         return None
 
     text = RULE_LABELS.get(key)
+    if text is None:
+        return None
+
+    return text
+
+
+def technical_label_for_rule(rule: str) -> str | None:
+    key = rule.strip().lower()
+    if key == "":
+        return None
+
+    text = TECHNICAL_RULE_LABELS.get(key)
     if text is None:
         return None
 

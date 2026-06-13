@@ -8,17 +8,6 @@ from app.layers.explain.payload import (
 from app.layers.explain.schemas import ExplainRequest
 
 
-def _friendly_verdict(verdict: str) -> str:
-    key = verdict.strip().lower()
-    if key == "safe":
-        return "Nothing major stood out in our checks."
-    if key == "caution":
-        return "We found some warning signs, so you should be careful."
-    if key == "high_risk":
-        return "We found several warning signs that this page may be a scam."
-    return "Please be careful on this page."
-
-
 def _host_label(request: ExplainRequest) -> str:
     host = request.page_host.strip()
     if host != "":
@@ -47,33 +36,47 @@ def _join_sentences(parts: list[str]) -> str:
     return " ".join(sentences)
 
 
-def _layer_names_from_bullets(bullets: list[str]) -> list[str]:
-    names: list[str] = []
+def _technical_signals_from_bullets(bullets: list[str]) -> list[str]:
+    signals: list[str] = []
+    seen: set[str] = set()
     for bullet in bullets:
-        head = bullet.split("(", 1)[0].strip()
-        if head != "" and head not in names:
-            names.append(head)
-    return names
+        if ":" not in bullet:
+            continue
+        _, rest = bullet.split(":", 1)
+        for part in rest.split(";"):
+            text = part.strip()
+            key = text.lower()
+            if text != "" and key not in seen:
+                seen.add(key)
+                signals.append(text)
+    return signals
+
+
+def _plain_opener(verdict: str) -> str:
+    key = verdict.strip().lower()
+    if key == "safe":
+        return "This page looks mostly okay."
+    if key == "caution":
+        return "This page looks suspicious."
+    if key == "high_risk":
+        return "This page looks like a scam."
+    return "Please be careful on this page."
 
 
 def build_fallback_explanation_plain(request: ExplainRequest) -> str:
-    host = _host_label(request)
-    intro = _friendly_verdict(request.verdict)
+    opener = _plain_opener(request.verdict)
     bullets = build_signal_bullets(request)
 
-    closing = (
-        "If you are not sure, close this tab and open the official website by typing "
-        "the address yourself. Do not enter your password here."
-    )
+    closing = "If you need to log in, use the official website - not this page."
 
     if request.threat_score <= 0 or len(bullets) == 0:
-        return (
-            f"We checked {host}. {intro} "
-            f"If you need to log in or pay, use the official site you typed yourself."
-        )
+        return f"{opener} Stay careful before entering passwords or payment details."
 
-    reasons = _join_sentences(bullets[:3])
-    return f"We checked {host}. {intro} {reasons} {closing}"
+    main_reason = bullets[0].strip()
+    if not main_reason.endswith("."):
+        main_reason = f"{main_reason}."
+
+    return f"{opener} {main_reason} {closing}"
 
 
 def build_fallback_explanation_technical(request: ExplainRequest) -> str:
@@ -81,25 +84,17 @@ def build_fallback_explanation_technical(request: ExplainRequest) -> str:
     risk = verdict_label(request.verdict)
     bullets = build_technical_bullets(request)
 
-    intro = (
-        f"This scan of {host} scored {request.threat_score} out of 100 ({risk})."
-    )
+    intro = f"Analysis of {host} indicates {risk.lower()}."
 
     if len(bullets) == 0:
-        return f"{intro} No layer contributed points to the score."
+        return f"{intro} No layer contributed findings to this assessment."
 
-    body = _join_sentences(bullets[:4])
-    drivers = _layer_names_from_bullets(bullets[:3])
-    if len(drivers) == 1:
-        conclusion = f"The primary risk driver is {drivers[0]}."
-    elif len(drivers) == 2:
-        conclusion = f"The primary risk drivers are {drivers[0]} and {drivers[1]}."
-    else:
-        conclusion = (
-            f"The primary risk drivers are {drivers[0]}, {drivers[1]}, and {drivers[2]}."
-        )
+    signals = _technical_signals_from_bullets(bullets)
+    if len(signals) == 0:
+        return intro
 
-    return f"{intro} {body} {conclusion}"
+    body = _join_sentences(signals[:3])
+    return f"{intro} {body}"
 
 
 def build_fallback_explanation(request: ExplainRequest) -> str:

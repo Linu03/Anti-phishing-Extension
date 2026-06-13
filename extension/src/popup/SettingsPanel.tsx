@@ -167,7 +167,7 @@ export function SettingsPanel() {
             mode="plain"
             selected={explanationMode === "plain"}
             title="Plain English"
-            description="Show score contributions per check and a button for an easy-to-read summary (local Ollama)."
+            description="Show the risk score and verdict, with a button for an easy-to-read summary (local Ollama)."
             icon={<MessageCircle className="h-4 w-4" strokeWidth={1.5} />}
             onSelect={(mode) => {
               void handleSelectExplanationMode(mode);
