@@ -182,29 +182,44 @@ def _skip_for_trust(trust: TrustLevel) -> bool:
     return trust in {TrustLevel.USER_WHITELIST, TrustLevel.TRUSTED_BRAND_HOST}
 
 
-async def check_visual_brand_impersonation(
+async def resolve_prominent_brand_match(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
     http_client: httpx.AsyncClient,
-) -> list[PageFinding]:
+) -> BrandMatch | None:
     if not effective_has_sensitive_form(snapshot):
-        return []
+        return None
 
     image = snapshot.prominent_image
     if image is None:
-        return []
+        return None
     if image.b64.strip() == "" and image.url.strip() == "":
-        return []
+        return None
 
     trust = resolve_page_trust_context(snapshot, context)
     if _skip_for_trust(trust):
-        return []
+        return None
 
-    match: BrandMatch | None = await match_brand_from_prominent_image(
+    return await match_brand_from_prominent_image(
         http_client,
         image_b64=image.b64,
         image_url=image.url,
     )
+
+
+async def check_visual_brand_impersonation(
+    snapshot: PageSnapshotModel,
+    context: PriorLayersContextModel,
+    http_client: httpx.AsyncClient,
+    *,
+    precomputed_match: BrandMatch | None = None,
+) -> list[PageFinding]:
+    if not effective_has_sensitive_form(snapshot):
+        return []
+
+    match = precomputed_match
+    if match is None:
+        match = await resolve_prominent_brand_match(snapshot, context, http_client)
     if match is None:
         return []
 

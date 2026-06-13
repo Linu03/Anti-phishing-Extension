@@ -263,6 +263,9 @@ def check_high_entropy_hostname(host: str) -> list[UrlFinding]:
     if label is None:
         return findings
 
+    if "-" in label or "_" in label:
+        return findings
+
     if len(label) < MIN_LABEL_LENGTH_FOR_ENTROPY:
         return findings
 

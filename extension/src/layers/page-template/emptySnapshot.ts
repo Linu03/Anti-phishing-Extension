@@ -43,5 +43,6 @@ export function buildEmptySnapshot(pageUrl: string, collectionError: string): Pa
     is_framed: false,
     field_profile: emptyFieldProfile(),
     prominent_image: null,
+    favicon: null,
   };
 }

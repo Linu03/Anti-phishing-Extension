@@ -46,6 +46,14 @@ export type ProminentImage = {
   height: number;
 };
 
+export type FaviconImage = {
+  url: string;
+  b64: string;
+  mime: string;
+  width: number;
+  height: number;
+};
+
 export type PageSnapshot = {
   page_url: string;
   page_host: string;
@@ -70,6 +78,7 @@ export type PageSnapshot = {
   is_framed: boolean;
   field_profile: FieldProfile;
   prominent_image: ProminentImage | null;
+  favicon: FaviconImage | null;
 };
 
 export type PriorLayersContextPayload = {

@@ -12,6 +12,7 @@ import {
   sanitizedTabUrl,
 } from "../layers/page-template/urlSanitize";
 import type {
+  FaviconImage,
   FieldProfile,
   FormSnapshot,
   IframeSnapshot,
@@ -640,6 +641,136 @@ function collectProminentImage(pageHref: string): ProminentImage | null {
   };
 }
 
+function parseIconSize(sizesAttr: string): number {
+  if (sizesAttr.trim() === "" || sizesAttr.toLowerCase() === "any") {
+    return 0;
+  }
+
+  let best = 0;
+  const parts = sizesAttr.split(/\s+/);
+  for (let i = 0; i < parts.length; i++) {
+    const match = parts[i].match(/^(\d+)x(\d+)$/i);
+    if (match === null) {
+      continue;
+    }
+    const edge = Math.max(parseInt(match[1], 10), parseInt(match[2], 10));
+    if (edge > best) {
+      best = edge;
+    }
+  }
+  return best;
+}
+
+function resolveFaviconUrl(pageHref: string): string {
+  let bestUrl = "";
+  let bestSize = 0;
+
+  try {
+    const links = document.querySelectorAll("link[rel]");
+    for (let i = 0; i < links.length; i++) {
+      const link = links[i];
+      const rel = attrLower(link, "rel");
+      if (!rel.includes("icon")) {
+        continue;
+      }
+      if (rel.includes("apple-touch")) {
+        continue;
+      }
+
+      const href = link.getAttribute("href");
+      if (href === null || href.trim() === "") {
+        continue;
+      }
+
+      const url = absoluteUrl(href, pageHref);
+      if (url === "" || url.toLowerCase().endsWith(".svg")) {
+        continue;
+      }
+
+      let size = parseIconSize(link.getAttribute("sizes") ?? "");
+      if (size === 0) {
+        size = rel.includes("shortcut") ? 16 : 32;
+      }
+
+      if (size >= bestSize) {
+        bestSize = size;
+        bestUrl = url;
+      }
+    }
+  } catch {
+    // non-fatal
+  }
+
+  if (bestUrl !== "") {
+    return bestUrl;
+  }
+
+  try {
+    return new URL("/favicon.ico", pageHref).href;
+  } catch {
+    return "";
+  }
+}
+
+async function collectFaviconImage(pageHref: string): Promise<FaviconImage | null> {
+  const url = resolveFaviconUrl(pageHref);
+  if (url === "") {
+    return null;
+  }
+
+  try {
+    const response = await fetch(url, { credentials: "include", cache: "force-cache" });
+    if (!response.ok) {
+      return { url, b64: "", mime: "", width: 0, height: 0 };
+    }
+
+    const contentType = (response.headers.get("content-type") || "").toLowerCase();
+    if (contentType.includes("svg")) {
+      return null;
+    }
+
+    const blob = await response.blob();
+    if (blob.size === 0 || blob.size > 512 * 1024) {
+      return { url, b64: "", mime: "", width: 0, height: 0 };
+    }
+
+    const bitmap = await createImageBitmap(blob);
+    const width = bitmap.width;
+    const height = bitmap.height;
+    if (width === 0 || height === 0) {
+      bitmap.close();
+      return { url, b64: "", mime: "", width: 0, height: 0 };
+    }
+
+    const canvas = document.createElement("canvas");
+    const scale = Math.min(1, LOGO_B64_MAX_EDGE / Math.max(width, height));
+    canvas.width = Math.max(1, Math.round(width * scale));
+    canvas.height = Math.max(1, Math.round(height * scale));
+    const ctx = canvas.getContext("2d");
+    if (ctx === null) {
+      bitmap.close();
+      return { url, b64: "", mime: "", width, height };
+    }
+
+    ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+    bitmap.close();
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const commaIndex = dataUrl.indexOf(",");
+    const b64 = commaIndex === -1 ? "" : dataUrl.slice(commaIndex + 1);
+
+    return {
+      url,
+      b64,
+      mime: "image/png",
+      width,
+      height,
+    };
+  } catch {
+    return { url, b64: "", mime: "", width: 0, height: 0 };
+  }
+}
+
 export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[]): PageSnapshot {
   const pageHref = window.location.href;
   const pageOrigin = sanitizedTabUrl(pageHref);
@@ -766,11 +897,14 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
     is_framed: pageIsFramed(),
     field_profile: fieldProfile,
     prominent_image: prominentImage,
+    favicon: null,
   };
 }
 
 type CollectorGlobal = {
   __AFS_COLLECT_PAGE_SNAPSHOT__?: (brandIds: string[], scriptFpOrigins: string[]) => PageSnapshot;
+  __AFS_COLLECT_FAVICON__?: (pageHref: string) => Promise<FaviconImage | null>;
 };
 
 (globalThis as CollectorGlobal).__AFS_COLLECT_PAGE_SNAPSHOT__ = collectPageSnapshot;
+(globalThis as CollectorGlobal).__AFS_COLLECT_FAVICON__ = collectFaviconImage;

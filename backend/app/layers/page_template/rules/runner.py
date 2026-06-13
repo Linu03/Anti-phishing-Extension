@@ -31,7 +31,12 @@ from app.layers.page_template.rules.credential import (
 from app.layers.page_template.rules.framing import check_login_page_is_framed
 from app.layers.page_template.rules.hosting import check_credential_form_on_free_hosting
 from app.layers.page_template.rules.resources import check_external_resource_ratio
-from app.layers.page_template.rules.visual_brand import check_visual_brand_impersonation
+from app.layers.page_template.rules.favicon_brand import check_favicon_brand_impersonation
+from app.layers.page_template.rules.visual_brand import (
+    RULE_VISUAL_BRAND_MISMATCH,
+    check_visual_brand_impersonation,
+    resolve_prominent_brand_match,
+)
 from app.layers.page_template.schemas import (
     PageSnapshotModel,
     PriorLayersContextModel,
@@ -73,11 +78,6 @@ GENERAL_RULES: list[RuleFn] = [
 ]
 
 
-ASYNC_CREDENTIAL_GATED_RULES: list[AsyncRuleFn] = [
-    check_visual_brand_impersonation,
-]
-
-
 def run_all_rules(
     snapshot: PageSnapshotModel,
     context: PriorLayersContextModel,
@@ -102,10 +102,36 @@ async def run_async_rules(
     http_client: httpx.AsyncClient,
 ) -> list[PageFinding]:
     findings: list[PageFinding] = []
-    for rule in ASYNC_CREDENTIAL_GATED_RULES:
-        try:
-            findings.extend(await rule(snapshot, context, http_client))
-        except Exception:
-            # external rules must never break the synchronous verdict
-            continue
+    prominent_match = await resolve_prominent_brand_match(snapshot, context, http_client)
+
+    visual_findings: list[PageFinding] = []
+    try:
+        visual_findings = await check_visual_brand_impersonation(
+            snapshot,
+            context,
+            http_client,
+            precomputed_match=prominent_match,
+        )
+        findings.extend(visual_findings)
+    except Exception:
+        pass
+
+    exclude_brand: str | None = None
+    if prominent_match is not None and any(
+        item.rule == RULE_VISUAL_BRAND_MISMATCH for item in visual_findings
+    ):
+        exclude_brand = prominent_match.brand
+
+    try:
+        findings.extend(
+            await check_favicon_brand_impersonation(
+                snapshot,
+                context,
+                http_client,
+                exclude_brand=exclude_brand,
+            )
+        )
+    except Exception:
+        pass
+
     return findings
