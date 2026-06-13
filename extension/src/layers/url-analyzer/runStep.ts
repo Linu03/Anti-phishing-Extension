@@ -3,7 +3,10 @@ import { isRestrictedPageUrl } from "../restrictedPageUrl";
 import { fetchUrlAnalyzer } from "./api";
 import type { UrlAnalyzerStepResult } from "./types";
 
-export async function runUrlAnalyzerStep(pageUrl: string): Promise<UrlAnalyzerStepResult> {
+export async function runUrlAnalyzerStep(
+  pageUrl: string,
+  whitelistTrusted = false,
+): Promise<UrlAnalyzerStepResult> {
   if (isRestrictedPageUrl(pageUrl)) {
     return {
       status: "skipped",
@@ -14,7 +17,7 @@ export async function runUrlAnalyzerStep(pageUrl: string): Promise<UrlAnalyzerSt
   const baseUrl = getApiBaseUrl();
 
   try {
-    const serverData = await fetchUrlAnalyzer(baseUrl, pageUrl);
+    const serverData = await fetchUrlAnalyzer(baseUrl, pageUrl, whitelistTrusted);
     return {
       status: "ok",
       score: serverData.score,

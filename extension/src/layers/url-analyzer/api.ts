@@ -14,12 +14,13 @@ export type ServerUrlAnalyzerResponse = {
 export async function fetchUrlAnalyzer(
   apiBaseUrl: string,
   pageUrl: string,
+  whitelistTrusted = false,
 ): Promise<ServerUrlAnalyzerResponse> {
   const analyzeUrl = `${apiBaseUrl}/v1/url-analyzer/analyze`;
   const response = await fetch(analyzeUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ url: pageUrl }),
+    body: JSON.stringify({ url: pageUrl, whitelist_trusted: whitelistTrusted }),
   });
 
   if (!response.ok) {

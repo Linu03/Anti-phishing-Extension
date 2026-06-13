@@ -56,7 +56,8 @@ export async function runFullTabAnalysis(
 
   const whitelistStep = await runWhitelistStep(pageUrl);
   const blocklistStep = await runBlocklistStep(pageUrl);
-  const urlAnalyzerStep = await runUrlAnalyzerStep(pageUrl);
+  const whitelistTrusted = whitelistStep.status === "trusted";
+  const urlAnalyzerStep = await runUrlAnalyzerStep(pageUrl, whitelistTrusted);
   const tlsStep = await runTlsStep(pageUrl);
 
   const priorContext = buildPriorLayersContext(

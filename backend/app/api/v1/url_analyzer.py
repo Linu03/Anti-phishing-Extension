@@ -1,21 +1,23 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from app.layers.url_analyzer.service import analyze_url
+from app.layers.url_analyzer.service import analyze_url_with_rdap
 
 router = APIRouter(prefix="/url-analyzer")
 
 
 class UrlAnalyzerRequest(BaseModel):
     url: str = Field(..., min_length=4, max_length=8192)
+    whitelist_trusted: bool = False
 
 
 class UrlFindingResponse(BaseModel):
     rule: str
     points: int
     detail: str
+    tier: str = ""
 
 
 class UrlAnalyzerResponse(BaseModel):
@@ -28,9 +30,16 @@ class UrlAnalyzerResponse(BaseModel):
 
 
 @router.post("/analyze", response_model=UrlAnalyzerResponse)
-async def url_analyzer_analyze(body: UrlAnalyzerRequest) -> UrlAnalyzerResponse:
+async def url_analyzer_analyze(
+    body: UrlAnalyzerRequest,
+    request: Request,
+) -> UrlAnalyzerResponse:
     try:
-        result = analyze_url(body.url)
+        result = await analyze_url_with_rdap(
+            body.url,
+            request.app.state.http_client,
+            whitelist_trusted=body.whitelist_trusted,
+        )
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
 

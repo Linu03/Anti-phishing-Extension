@@ -1,8 +1,3 @@
-"""Sanity-check the brand logo registry.
-
-Run:  python -m scripts.inspect_brand_logos
-"""
-
 from __future__ import annotations
 
 from app.layers.page_template.impersonation_registry import get_impersonation_registry
