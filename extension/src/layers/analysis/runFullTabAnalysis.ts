@@ -22,10 +22,27 @@ import {
 } from "../../debug/scanDebugIngest";
 import { composePhishingAnalysis } from "./composePhishingAnalysis";
 import { buildPriorLayersContext } from "./priorLayersContext";
+import { persistScanRecord } from "./persistScanRecord";
 
 export type RunFullTabAnalysisOptions = {
   tabId?: number;
 };
+
+async function waitForDomMaturity(
+  tabId: number | undefined,
+  pageUrl: string,
+): Promise<{ behaviorDiff: Awaited<ReturnType<typeof getBehaviorDiffForTab>>; redirectEvidence: Awaited<ReturnType<typeof readRedirectEvidence>> }> {
+  if (tabId === undefined) {
+    return { behaviorDiff: null, redirectEvidence: null };
+  }
+
+  const [behaviorDiff, redirectEvidence] = await Promise.all([
+    getBehaviorDiffForTab(tabId, pageUrl),
+    readRedirectEvidence(tabId),
+  ]);
+
+  return { behaviorDiff, redirectEvidence };
+}
 
 export async function runFullTabAnalysis(
   pageUrl: string,
@@ -39,26 +56,17 @@ export async function runFullTabAnalysis(
     void startBehaviorObserverForTab(activeTabId, pageUrl);
   }
 
-  let pageSnapshot: PageSnapshot | null = null;
-  let snapshotInjectFailed = false;
-  if (activeTabId !== undefined) {
-    try {
-      const baseUrl = getApiBaseUrl();
-      const brandIds = await getCachedBrandIds(baseUrl);
-      const scriptFpOrigins = await getCachedScriptFpOrigins(baseUrl);
-      pageSnapshot = await collectPageSnapshotFromTab(activeTabId, brandIds, scriptFpOrigins);
-      snapshotInjectFailed = pageSnapshot === null;
-    } catch {
-      pageSnapshot = null;
-      snapshotInjectFailed = true;
-    }
-  }
-
   const whitelistStep = await runWhitelistStep(pageUrl);
   const blocklistStep = await runBlocklistStep(pageUrl);
   const whitelistTrusted = whitelistStep.status === "trusted";
-  const urlAnalyzerStep = await runUrlAnalyzerStep(pageUrl, whitelistTrusted);
-  const tlsStep = await runTlsStep(pageUrl);
+
+  const [urlAnalyzerStep, tlsStep, domMaturity] = await Promise.all([
+    runUrlAnalyzerStep(pageUrl, whitelistTrusted),
+    runTlsStep(pageUrl),
+    waitForDomMaturity(activeTabId, pageUrl),
+  ]);
+
+  const { behaviorDiff, redirectEvidence } = domMaturity;
 
   const priorContext = buildPriorLayersContext(
     blocklistStep,
@@ -88,13 +96,6 @@ export async function runFullTabAnalysis(
     behavioralContext.page_template_rules = pageTemplateStep.findings.map((f) => f.rule);
   }
 
-  let behaviorDiff = null;
-  let redirectEvidence = null;
-  if (activeTabId !== undefined) {
-    behaviorDiff = await getBehaviorDiffForTab(activeTabId, pageUrl);
-    redirectEvidence = await readRedirectEvidence(activeTabId);
-  }
-
   const behavioralStep = await runBehavioralStep(pageUrl, behaviorDiff, behavioralContext);
 
   let urlForUi = pageUrl.trim();
@@ -114,6 +115,21 @@ export async function runFullTabAnalysis(
   );
 
   if (DEBUG_SCAN_REPORT_ENABLED) {
+    let pageSnapshot: PageSnapshot | null = null;
+    let snapshotInjectFailed = false;
+    if (activeTabId !== undefined) {
+      try {
+        const baseUrl = getApiBaseUrl();
+        const brandIds = await getCachedBrandIds(baseUrl);
+        const scriptFpOrigins = await getCachedScriptFpOrigins(baseUrl);
+        pageSnapshot = await collectPageSnapshotFromTab(activeTabId, brandIds, scriptFpOrigins);
+        snapshotInjectFailed = pageSnapshot === null;
+      } catch {
+        pageSnapshot = null;
+        snapshotInjectFailed = true;
+      }
+    }
+
     const bundle = buildScanDebugBundle({
       scanned_at: new Date().toISOString(),
       page_url: urlForUi,
@@ -137,6 +153,8 @@ export async function runFullTabAnalysis(
     });
     void persistScanDebugReport(bundle);
   }
+
+  void persistScanRecord(analysis);
 
   return analysis;
 }
