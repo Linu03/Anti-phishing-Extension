@@ -3,7 +3,7 @@ import {
   BEHAVIOR_WAIT_TIMEOUT_MS,
 } from "./constants";
 import { readRedirectEvidence } from "./redirectEvidence";
-import type { BehaviorDiff, JsExfilAttempt } from "./types";
+import type { BehaviorDiff, ClipboardShellWrite, JsExfilAttempt } from "./types";
 
 export const BEHAVIOR_DIFF_STORAGE_PREFIX = "behavior_diff_";
 
@@ -47,12 +47,23 @@ function isJsExfilAttempt(value: unknown): value is JsExfilAttempt {
   );
 }
 
+function isClipboardShellWrite(value: unknown): value is ClipboardShellWrite {
+  if (value === null || typeof value !== "object") {
+    return false;
+  }
+  const item = value as ClipboardShellWrite;
+  return typeof item.snippet === "string" && typeof item.looks_shell === "boolean";
+}
+
 function normalizeBehaviorDiff(raw: BehaviorDiff): BehaviorDiff {
   const attempts = Array.isArray(raw.js_exfil_attempts) ? raw.js_exfil_attempts : [];
   const js_exfil_attempts = attempts.filter((item) => isJsExfilAttempt(item));
+  const writes = Array.isArray(raw.clipboard_shell_writes) ? raw.clipboard_shell_writes : [];
+  const clipboard_shell_writes = writes.filter((item) => isClipboardShellWrite(item));
   return {
     ...raw,
     js_exfil_attempts,
+    clipboard_shell_writes,
   };
 }
 
@@ -87,6 +98,7 @@ export function emptyBehaviorDiff(observedMs = 0): BehaviorDiff {
     start_host: "",
     end_host: "",
     js_exfil_attempts: [],
+    clipboard_shell_writes: [],
   };
 }
 

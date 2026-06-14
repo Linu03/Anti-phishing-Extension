@@ -13,6 +13,7 @@ import { buildPageTemplateLayer } from "../page-template/layer";
 import type { PageTemplateStepResult } from "../page-template/types";
 import { buildWhitelistLayer } from "../whitelist/layer";
 import type { WhitelistStepResult } from "../whitelist/types";
+import { applyClickfixScoreDedup } from "./clickfixScoreDedup";
 
 export function composePhishingAnalysis(
   pageUrl: string,
@@ -30,13 +31,14 @@ export function composePhishingAnalysis(
   const tlsLayer = buildTlsLayer(tlsStep);
   const pageTemplateLayer = buildPageTemplateLayer(pageTemplateStep);
   const behavioralLayer = buildBehavioralLayer(behavioralStep);
+  const deduped = applyClickfixScoreDedup(pageTemplateLayer, behavioralLayer);
   const layers = [
     blocklistLayer,
     whitelistLayer,
     urlAnalyzerLayer,
     tlsLayer,
-    pageTemplateLayer,
-    behavioralLayer,
+    deduped.pageLayer,
+    deduped.behavioralLayer,
   ];
 
   const threatScore = sumLayerContributions(layers);

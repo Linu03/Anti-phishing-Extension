@@ -54,6 +54,14 @@ export type FaviconImage = {
   height: number;
 };
 
+export type CaptchaSurfaceHints = {
+  has_standalone_checkbox: boolean;
+  has_captcha_like_text: boolean;
+  mentions_cloudflare_or_recaptcha: boolean;
+  has_clickfix_instruction_text: boolean;
+  has_real_captcha_widget: boolean;
+};
+
 export type PageSnapshot = {
   page_url: string;
   page_host: string;
@@ -79,6 +87,7 @@ export type PageSnapshot = {
   field_profile: FieldProfile;
   prominent_image: ProminentImage | null;
   favicon: FaviconImage | null;
+  captcha_surface: CaptchaSurfaceHints;
 };
 
 export type PriorLayersContextPayload = {

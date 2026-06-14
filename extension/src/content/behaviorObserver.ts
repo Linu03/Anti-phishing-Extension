@@ -5,6 +5,7 @@ import { countPasswordLikeInputs } from "../layers/page-template/passwordFieldDe
 import { safeOrigin } from "../layers/page-template/urlSanitize";
 import type { BehaviorDiff } from "../layers/behavioral/types";
 import { MSG_STORE_BEHAVIOR_DIFF, type StoredBehaviorDiff } from "../layers/behavioral/behaviorDiffStorage";
+import { getClipboardShellWritesSnapshot, installClickfixClipboardCapture } from "./clickfixClipboardCapture";
 import { getJsExfilAttemptsSnapshot, installJsExfilCapture } from "./jsExfilCapture";
 
 const DEBOUNCE_MS = 400;
@@ -103,6 +104,7 @@ function buildDiff(
     start_host: redirect.startHost,
     end_host: redirect.endHost,
     js_exfil_attempts: getJsExfilAttemptsSnapshot(),
+    clipboard_shell_writes: getClipboardShellWritesSnapshot(),
   };
 }
 
@@ -183,6 +185,7 @@ export function startBehaviorObserver(brandIds: string[], tabId: number, pageUrl
 
   const pageHref = window.location.href;
   installJsExfilCapture(pageHref);
+  installClickfixClipboardCapture();
   const startedAt = Date.now();
   const before = captureSnapshot(pageHref, brandIds);
 

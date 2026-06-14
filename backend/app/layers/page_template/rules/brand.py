@@ -141,7 +141,14 @@ def _is_oauth_login_context(snapshot: PageSnapshotModel, brand: str) -> bool:
     if brand not in registry.oauth_brands:
         return False
 
-    return _all_submits_to_idp(snapshot)
+    if not _all_submits_to_idp(snapshot):
+        return False
+
+    official_domains = registry.brand_domains.get(brand)
+    if official_domains is None:
+        return False
+
+    return host_matches_brand(snapshot.page_host, brand, official_domains)
 
 
 def _mismatched_brands(snapshot: PageSnapshotModel, brands: list[str]) -> list[str]:

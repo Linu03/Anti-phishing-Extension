@@ -6,7 +6,7 @@ from app.layers.behavioral.finding import BehavioralFinding
 from app.layers.behavioral.rules.runner import run_all_behavior_rules
 from app.layers.behavioral.schemas import BehaviorDiffModel, BehavioralContextModel
 
-MAX_LAYER_SCORE = 40
+MAX_LAYER_SCORE = 65
 
 
 def _findings_to_dict_list(findings: list[BehavioralFinding]) -> list[dict]:

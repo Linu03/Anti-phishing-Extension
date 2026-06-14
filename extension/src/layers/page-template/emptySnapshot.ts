@@ -1,3 +1,4 @@
+import { emptyCaptchaSurfaceHints } from "./captchaSurface";
 import { sanitizedTabUrl } from "./urlSanitize";
 import type { FieldProfile, PageSnapshot } from "./types";
 import { hostFromInput } from "../urlHost";
@@ -44,5 +45,6 @@ export function buildEmptySnapshot(pageUrl: string, collectionError: string): Pa
     field_profile: emptyFieldProfile(),
     prominent_image: null,
     favicon: null,
+    captcha_surface: emptyCaptchaSurfaceHints(),
   };
 }

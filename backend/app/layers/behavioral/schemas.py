@@ -10,6 +10,11 @@ class JsExfilAttemptModel(BaseModel):
     via: str = ""
 
 
+class ClipboardShellWriteModel(BaseModel):
+    snippet: str = ""
+    looks_shell: bool = False
+
+
 class BehaviorDiffModel(BaseModel):
     forms_appeared: bool = False
     password_inputs_increased: bool = False
@@ -20,6 +25,7 @@ class BehaviorDiffModel(BaseModel):
     start_host: str = ""
     end_host: str = ""
     js_exfil_attempts: list[JsExfilAttemptModel] = Field(default_factory=list)
+    clipboard_shell_writes: list[ClipboardShellWriteModel] = Field(default_factory=list)
 
 
 class BehavioralContextModel(BaseModel):

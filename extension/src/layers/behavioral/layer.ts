@@ -2,17 +2,11 @@ import type { LayerSignal } from "../types";
 import { BEHAVIORAL_USER_MESSAGES } from "./messages";
 import type { BehavioralStepResult } from "./types";
 
-const MAX_CONTRIBUTION = 40;
-
-function clampContribution(score: number): number {
-  let contribution = score;
-  if (contribution > MAX_CONTRIBUTION) {
-    contribution = MAX_CONTRIBUTION;
+function normalizeContribution(score: number): number {
+  if (score < 0) {
+    return 0;
   }
-  if (contribution < 0) {
-    contribution = 0;
-  }
-  return contribution;
+  return score;
 }
 
 export function buildBehavioralLayer(step: BehavioralStepResult): LayerSignal {
@@ -29,7 +23,7 @@ export function buildBehavioralLayer(step: BehavioralStepResult): LayerSignal {
     return {
       id: "behavioral",
       label: "Behavioral check",
-      contribution: clampContribution(step.score),
+      contribution: normalizeContribution(step.score),
       detail,
       findings: step.findings,
     };

@@ -5,6 +5,11 @@ export type JsExfilAttempt = {
   via: "fetch" | "xhr" | "sendBeacon";
 };
 
+export type ClipboardShellWrite = {
+  snippet: string;
+  looks_shell: boolean;
+};
+
 export type BehaviorDiff = {
   forms_appeared: boolean;
   password_inputs_increased: boolean;
@@ -15,6 +20,7 @@ export type BehaviorDiff = {
   start_host: string;
   end_host: string;
   js_exfil_attempts: JsExfilAttempt[];
+  clipboard_shell_writes: ClipboardShellWrite[];
 };
 
 export type BehavioralContextPayload = {

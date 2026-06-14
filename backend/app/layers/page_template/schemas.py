@@ -52,6 +52,14 @@ class FaviconImageModel(BaseModel):
     height: int = 0
 
 
+class CaptchaSurfaceHintsModel(BaseModel):
+    has_standalone_checkbox: bool = False
+    has_captcha_like_text: bool = False
+    mentions_cloudflare_or_recaptcha: bool = False
+    has_clickfix_instruction_text: bool = False
+    has_real_captcha_widget: bool = False
+
+
 class PageSnapshotModel(BaseModel):
     page_url: str = Field(..., min_length=4, max_length=8192)
     page_host: str = ""
@@ -80,6 +88,9 @@ class PageSnapshotModel(BaseModel):
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
     prominent_image: ProminentImageModel | None = None
     favicon: FaviconImageModel | None = None
+    captcha_surface: CaptchaSurfaceHintsModel = Field(
+        default_factory=CaptchaSurfaceHintsModel
+    )
 
 
 class PriorLayersContextModel(BaseModel):

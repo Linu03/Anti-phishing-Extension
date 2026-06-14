@@ -5,7 +5,12 @@ from collections.abc import Awaitable, Callable
 import httpx
 
 from app.layers.page_template.finding import PageFinding
+from app.layers.page_template.rules.aitm import (
+    check_idp_form_on_foreign_host,
+    check_oauth_aitm_login_surface,
+)
 from app.layers.page_template.rules.brand import check_brand_page_host_mismatch
+from app.layers.page_template.rules.clickfix import check_clickfix_page_signals
 from app.layers.page_template.rules.collection import check_collection_status
 from app.layers.page_template.rules.forms import (
     check_http_form_action_on_https_page,
@@ -75,6 +80,9 @@ CREDENTIAL_GATED_RULES: list[RuleFn] = [
 
 GENERAL_RULES: list[RuleFn] = [
     check_collection_status,
+    check_oauth_aitm_login_surface,
+    check_idp_form_on_foreign_host,
+    check_clickfix_page_signals,
 ]
 
 

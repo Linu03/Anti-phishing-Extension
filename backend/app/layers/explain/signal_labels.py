@@ -44,6 +44,26 @@ RULE_LABELS: dict[str, str] = {
         " shown in the address bar"
     ),
     "login_page_is_framed": "The login page is shown inside another site's frame",
+    "young_domain_sensitive_impersonation": (
+        "The website address was registered very recently, the page mimics a known brand,"
+        " and it asks for sensitive payment or identity details"
+    ),
+    "oauth_aitm_login_surface": (
+        "A sign-in page for a major service (such as Microsoft) is shown on a website"
+        " that does not belong to that service — possible proxy phishing"
+    ),
+    "idp_form_on_foreign_host": (
+        "The login form sends your details to the real sign-in server of a major service,"
+        " but the page itself is on a different website — a common proxy-phishing pattern"
+    ),
+    "fake_captcha_surface": (
+        "The page shows a robot-verification checkbox like CAPTCHA, but no real"
+        " Cloudflare or reCAPTCHA security widget is loaded"
+    ),
+    "clickfix_lure_surface": (
+        "The page mimics a CAPTCHA check and tells you to run terminal steps"
+        " (such as Win+R and Ctrl+V) — a common ClickFix trick"
+    ),
     "collection_failed": "We could not fully read the page structure",
     # TLS
     "no_https": "The site does not use HTTPS encryption",
@@ -57,6 +77,12 @@ RULE_LABELS: dict[str, str] = {
     "delayed_credential_form": "A login form appeared after the page loaded",
     "dynamic_submit_destination": "The form's submit address changed after the page loaded",
     "delayed_brand_injection": "Brand-related text appeared after the page loaded",
+    "clickfix_clipboard_shell": (
+        "After you interacted with the page, it copied a shell-like command to your clipboard"
+    ),
+    "clickfix_full_chain": (
+        "Fake CAPTCHA lure plus clipboard command copy — full ClickFix attack pattern"
+    ),
 }
 
 # Concise technical phrases for analyst summaries (no scores or matrix fields).
@@ -77,6 +103,21 @@ TECHNICAL_RULE_LABELS: dict[str, str] = {
     "idn_homograph": "IDN homograph characters in the hostname",
     "unicode_normalization": "Unicode normalization anomaly in the URL",
     "brand_page_host_mismatch": "Page content references a brand not present in the hostname",
+    "young_domain_sensitive_impersonation": (
+        "Very new domain combined with brand impersonation and sensitive field collection"
+    ),
+    "oauth_aitm_login_surface": (
+        "OAuth provider login surface (email/phone step) on a non-official hostname"
+    ),
+    "idp_form_on_foreign_host": (
+        "Credential form on a non-official hostname posts to the brand's official IdP origin"
+    ),
+    "fake_captcha_surface": (
+        "CAPTCHA-style checkbox and challenge text without a real widget iframe/script"
+    ),
+    "clickfix_lure_surface": (
+        "Fake CAPTCHA surface combined with Win+R / Ctrl+V style terminal instructions"
+    ),
     "visual_brand_mismatch": "Page logo matches a known brand but the hostname does not reference it",
     "credential_form_on_free_hosting": "Credential form on a free hosting or site-builder domain",
     "credential_form_on_http": "Credential form submitted over unencrypted HTTP",
@@ -105,6 +146,8 @@ TECHNICAL_RULE_LABELS: dict[str, str] = {
     "delayed_credential_form": "Credential form injected after initial load",
     "dynamic_submit_destination": "Form submit destination changed after load",
     "delayed_brand_injection": "Brand-related content injected after load",
+    "clickfix_clipboard_shell": "Clipboard write of shell-like command after fake CAPTCHA interaction",
+    "clickfix_full_chain": "Fake CAPTCHA lure plus clipboard shell command (ClickFix full chain)",
 }
 
 

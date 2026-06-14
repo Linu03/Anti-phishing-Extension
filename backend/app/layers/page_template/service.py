@@ -21,15 +21,14 @@ def _findings_to_dict_list(findings: list[PageFinding]) -> list[dict]:
     return result
 
 
-def _score_findings(findings: list[PageFinding],context: PriorLayersContextModel,) -> int:
+def _score_findings(findings: list[PageFinding], context: PriorLayersContextModel) -> int:
     base_score = 0
     for finding in findings:
         base_score = base_score + finding.points
 
-    if base_score > MAX_LAYER_SCORE:
-        base_score = MAX_LAYER_SCORE
+    score, amp_findings = apply_amplification(base_score, findings, context)
+    findings.extend(amp_findings)
 
-    score = apply_amplification(base_score, findings, context)
     if score > MAX_LAYER_SCORE:
         score = MAX_LAYER_SCORE
 

@@ -28,3 +28,4 @@ backend/debug_reports/*.json
 
 
 backend/app/data/brand_logos/
+backend/tests

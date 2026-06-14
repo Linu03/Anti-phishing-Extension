@@ -42,7 +42,17 @@ IFRAME_TRUSTED_ORIGINS: frozenset[str] = frozenset(
 
 IFRAME_MAX_TOTAL_POINTS = 20
 
-MAX_LAYER_SCORE = 60
+REAL_CAPTCHA_WIDGET_ORIGINS: frozenset[str] = frozenset(
+    {
+        "challenges.cloudflare.com",
+        "www.recaptcha.net",
+        "recaptcha.net",
+        "hcaptcha.com",
+        "newassets.hcaptcha.com",
+    }
+)
+
+MAX_LAYER_SCORE = 65
 
 
 def get_script_fp_origins_catalog() -> tuple[list[str], str]:

@@ -2,18 +2,13 @@ import type { LayerSignal } from "../types";
 import { PAGE_TEMPLATE_USER_MESSAGES } from "./messages";
 import type { PageTemplateStepResult } from "./types";
 
-const MAX_CONTRIBUTION = 60;
 const RULE_COLLECTION_FAILED = "collection_failed";
 
-function clampContribution(score: number): number {
-  let contribution = score;
-  if (contribution > MAX_CONTRIBUTION) {
-    contribution = MAX_CONTRIBUTION;
+function normalizeContribution(score: number): number {
+  if (score < 0) {
+    return 0;
   }
-  if (contribution < 0) {
-    contribution = 0;
-  }
-  return contribution;
+  return score;
 }
 
 function collectionFailedUserMessage(score: number): string {
@@ -54,7 +49,7 @@ export function buildPageTemplateLayer(step: PageTemplateStepResult): LayerSigna
     return {
       id: "page-template",
       label: "Page template",
-      contribution: clampContribution(step.score),
+      contribution: normalizeContribution(step.score),
       detail: buildOkDetail(step),
       findings: step.findings,
     };
@@ -82,7 +77,7 @@ export function buildPageTemplateLayer(step: PageTemplateStepResult): LayerSigna
 
     let contribution = 0;
     if (typeof step.score === "number") {
-      contribution = clampContribution(step.score);
+      contribution = normalizeContribution(step.score);
     } else if (step.kind === "untrusted") {
       contribution = 10;
     }
