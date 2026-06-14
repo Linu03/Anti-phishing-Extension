@@ -10,6 +10,7 @@ from app.api.v1.debug_report import router as debug_report_router
 from app.api.v1.explain import router as explain_router
 from app.api.v1.blacklist import router as blacklist_router
 from app.api.v1.scans import router as scans_router
+from app.api.v1.stats import router as stats_router
 from app.api.v1.page_template import router as page_template_router
 from app.api.v1.tls import router as tls_router
 from app.api.v1.url_analyzer import router as url_analyzer_router
@@ -62,6 +63,7 @@ app.include_router(behavioral_router, prefix="/v1")
 app.include_router(debug_report_router, prefix="/v1")
 app.include_router(explain_router, prefix="/v1")
 app.include_router(scans_router, prefix="/v1")
+app.include_router(stats_router, prefix="/v1")
 
 
 @app.get("/health")

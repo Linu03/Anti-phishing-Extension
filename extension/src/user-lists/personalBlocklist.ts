@@ -149,3 +149,7 @@ export async function isUrlPersonallyBlocked(url: string): Promise<boolean> {
   }
   return false;
 }
+
+export async function listPersonalBlocklistHosts(): Promise<string[]> {
+  return getPersonalBlocklist();
+}

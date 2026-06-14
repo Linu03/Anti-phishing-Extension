@@ -128,3 +128,7 @@ export async function removeWhitelist(url: string): Promise<void> {
   
   await saveWhitelistHosts(next);
 }
+
+export async function listWhitelistHosts(): Promise<string[]> {
+  return getWhitelistHosts();
+}

@@ -1,0 +1,10 @@
+html.stats-page,
+html.stats-page body {
+  overflow: auto;
+  min-height: 100%;
+}
+
+html.stats-page #root {
+  overflow: visible;
+  min-height: 100vh;
+}

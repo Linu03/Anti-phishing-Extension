@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react";
-import { Check, Layers, MessageCircle, ScanLine, ShieldCheck, Timer } from "lucide-react";
+import { BarChart3, Check, Layers, MessageCircle, ScanLine, ShieldCheck, Timer } from "lucide-react";
 import { getUserSettings, updateUserSettings } from "../settings/storage";
 import type { ExplanationMode, ScanMode } from "../settings/types";
 
@@ -112,6 +112,11 @@ export function SettingsPanel() {
     await updateUserSettings({ explanationMode: mode });
   }
 
+  function openStatsPage() {
+    const url = chrome.runtime.getURL("stats.html");
+    void chrome.tabs.create({ url });
+  }
+
   return (
     <div className="space-y-3 px-4 py-2.5">
       <div>
@@ -174,6 +179,23 @@ export function SettingsPanel() {
             }}
           />
         </div>
+      </div>
+
+      <div>
+        <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Statistics</p>
+        <button
+          type="button"
+          onClick={openStatsPage}
+          className="flex w-full items-center gap-2.5 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2.5 text-left transition hover:bg-surface-elevated"
+        >
+          <BarChart3 className="h-4 w-4 shrink-0 text-accent-line" strokeWidth={1.5} />
+          <div>
+            <p className="font-serif text-sm font-semibold text-ink">View statistics</p>
+            <p className="mt-0.5 font-sans text-xs leading-snug text-ink-muted">
+              Scan history, period summaries, and personal lists.
+            </p>
+          </div>
+        </button>
       </div>
     </div>
   );

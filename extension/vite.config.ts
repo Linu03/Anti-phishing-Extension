@@ -11,6 +11,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         popup: resolve(__dirname, "popup.html"),
+        stats: resolve(__dirname, "stats.html"),
         background: resolve(__dirname, "src/background/main.ts"),
         phishingOverlay: resolve(__dirname, "src/content/phishingOverlay.ts"),
         scanResultToast: resolve(__dirname, "src/content/scanResultToast.ts"),
