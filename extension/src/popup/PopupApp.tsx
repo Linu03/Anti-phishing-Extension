@@ -163,6 +163,20 @@ function layersForDisplay(layers: LayerSignal[], mode: ExplanationMode): LayerSi
 
 type ScanPhase = "idle" | "loading" | "ready";
 
+const SCAN_TIMEOUT_MS = 60_000;
+const INIT_TIMEOUT_MS = 10_000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => {
+        reject(new Error(message));
+      }, ms);
+    }),
+  ]);
+}
+
 function explainCacheKey(snapshot: AnalysisSnapshot, mode: ExplanationMode): string {
   return `${mode}|${snapshot.pageUrl}|${snapshot.lastChecked}|${snapshot.threatScore}`;
 }
@@ -177,7 +191,17 @@ function explainAudienceForMode(mode: ExplanationMode): "plain" | "technical" | 
   return null;
 }
 
-function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview | null; busy: boolean; onScan: () => void }) {
+function ManualScanPrompt({
+  tabPreview,
+  busy,
+  scanHint,
+  onScan,
+}: {
+  tabPreview: TabPreview | null;
+  busy: boolean;
+  scanHint: string | null;
+  onScan: () => void;
+}) {
   return (
     <div className="space-y-3 px-4 py-2.5">
       {tabPreview ? (
@@ -199,6 +223,7 @@ function ManualScanPrompt({ tabPreview, busy, onScan }: { tabPreview: TabPreview
         <ScanLine className="h-3.5 w-3.5 shrink-0" strokeWidth={2} />
         {busy ? "Scanning…" : "Scan this page"}
       </button>
+      {scanHint ? <p className="font-sans text-[11px] leading-snug text-accent-danger">{scanHint}</p> : null}
     </div>
   );
 }
@@ -264,6 +289,7 @@ export function PopupApp() {
   const [explainError, setExplainError] = useState<string | null>(null);
   const [explainForKey, setExplainForKey] = useState<string | null>(null);
   const [expandedLayerId, setExpandedLayerId] = useState<string | null>(null);
+  const [scanHint, setScanHint] = useState<string | null>(null);
 
   const clearExplain = useCallback(() => {
     setExplainBusy(false);
@@ -279,6 +305,7 @@ export function PopupApp() {
   const runScan = useCallback(async () => {
     clearExplain();
     resetLayerExpansion();
+    setScanHint(null);
     setScanPhase("loading");
 
     if (scanMode === "auto_when_ready" && activeTabId !== null) {
@@ -292,13 +319,18 @@ export function PopupApp() {
     }
 
     try {
-      const data = await loadActiveTabPhishingAnalysis();
+      const data = await withTimeout(
+        loadActiveTabPhishingAnalysis(),
+        SCAN_TIMEOUT_MS,
+        "Scan timed out. Is the backend running on port 8000?",
+      );
       setSnapshot(data);
       setScanPhase("ready");
     } catch {
       setSnapshot(null);
       const preview = await loadActiveTabPreview();
       setTabPreview(preview);
+      setScanHint("Scan failed or timed out. Check that the backend is running, then try again.");
       setScanPhase("idle");
     }
   }, [activeTabId, clearExplain, resetLayerExpansion, scanMode]);
@@ -335,48 +367,63 @@ export function PopupApp() {
     let stillMounted = true;
 
     async function init() {
-      const settings = await getUserSettings();
-      if (!stillMounted) {
-        return;
-      }
-      setScanMode(settings.scanMode);
-      setExplanationMode(settings.explanationMode);
+      try {
+        await withTimeout(
+          (async () => {
+            const settings = await getUserSettings();
+            if (!stillMounted) {
+              return;
+            }
+            setScanMode(settings.scanMode);
+            setExplanationMode(settings.explanationMode);
 
-      const preview = await loadActiveTabPreview();
-      if (!stillMounted) {
-        return;
-      }
-      setTabPreview(preview);
+            const preview = await loadActiveTabPreview();
+            if (!stillMounted) {
+              return;
+            }
+            setTabPreview(preview);
 
-      let trusted = false;
-      if (preview.url !== "" && !isRestrictedPageUrl(preview.url)) {
-        try {
-          trusted = await isUrlWhitelisted(preview.url);
-        } catch {
-          trusted = false;
+            let trusted = false;
+            if (preview.url !== "" && !isRestrictedPageUrl(preview.url)) {
+              try {
+                trusted = await isUrlWhitelisted(preview.url);
+              } catch {
+                trusted = false;
+              }
+            }
+            if (!stillMounted) {
+              return;
+            }
+            setTrustedSite(trusted);
+            setOnWhitelist(trusted);
+            setListCheckDone(true);
+
+            if (trusted) {
+              setSnapshot(null);
+              setScanPhase("ready");
+              return;
+            }
+
+            if (settings.scanMode === "auto_when_ready") {
+              const scanState = await loadActiveTabScanState();
+              if (stillMounted) {
+                applyAutoScanState(scanState);
+              }
+              return;
+            }
+            setScanPhase("idle");
+          })(),
+          INIT_TIMEOUT_MS,
+          "Popup init timed out",
+        );
+      } catch {
+        if (!stillMounted) {
+          return;
         }
+        setListCheckDone(true);
+        setScanPhase("idle");
+        setScanHint("Could not initialize. Reload the extension popup and try again.");
       }
-      if (!stillMounted) {
-        return;
-      }
-      setTrustedSite(trusted);
-      setOnWhitelist(trusted);
-      setListCheckDone(true);
-
-      if (trusted) {
-        setSnapshot(null);
-        setScanPhase("ready");
-        return;
-      }
-
-      if (settings.scanMode === "auto_when_ready") {
-        const scanState = await loadActiveTabScanState();
-        if (stillMounted) {
-          applyAutoScanState(scanState);
-        }
-        return;
-      }
-      setScanPhase("idle");
     }
 
     void init();
@@ -718,6 +765,7 @@ export function PopupApp() {
         <ManualScanPrompt
           tabPreview={tabPreview}
           busy={false}
+          scanHint={scanHint}
           onScan={() => {
             void runScan();
           }}
@@ -734,6 +782,9 @@ export function PopupApp() {
             <Shield className="h-4 w-4 shrink-0 text-ink-faint" strokeWidth={1.5} />
             <p className="font-sans text-sm text-ink-muted">Could not load analysis.</p>
           </div>
+          {scanHint ? (
+            <p className="font-sans text-[11px] leading-snug text-accent-danger">{scanHint}</p>
+          ) : null}
           <button
             type="button"
             onClick={() => {

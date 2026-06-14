@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "../fetchWithTimeout";
+
 export type ServerBlocklistResponse = {
   listed: boolean;
   sources: string[];
@@ -7,7 +9,7 @@ export type ServerBlocklistResponse = {
 
 export async function fetchBlocklistCheck(apiBaseUrl: string, pageUrl: string): Promise<ServerBlocklistResponse> {
   const checkUrl = `${apiBaseUrl}/v1/blacklist/check`;
-  const response = await fetch(checkUrl, {
+  const response = await fetchWithTimeout(checkUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: pageUrl }),

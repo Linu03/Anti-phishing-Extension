@@ -124,11 +124,12 @@ async function runBackgroundScan(
   pageUrl: string,
   pageTitle: string,
   generation: number,
+  options?: { force?: boolean },
 ): Promise<void> {
   let saved = false;
 
   try {
-    if (!(await isAutoScanEnabled())) {
+    if (!(await isAutoScanEnabled()) && options?.force !== true) {
       return;
     }
 
@@ -216,7 +217,7 @@ export async function requestRescanForTab(tabId: number): Promise<void> {
   const generation = bumpScanGeneration(tabId);
   await markTabScanning(tabId, pageUrl);
   await startBehaviorObserverForTab(tabId, pageUrl);
-  void runBackgroundScan(tabId, pageUrl, tab.title ?? "", generation);
+  void runBackgroundScan(tabId, pageUrl, tab.title ?? "", generation, { force: true });
 }
 
 export async function scanActiveTabIfAuto(): Promise<void> {

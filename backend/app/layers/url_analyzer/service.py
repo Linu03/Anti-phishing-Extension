@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from dataclasses import asdict
 
 import httpx
@@ -27,6 +28,7 @@ from app.layers.url_analyzer.rules.suspicious_tld import check_suspicious_tld
 from app.layers.url_analyzer.rules.typosquatting import check_typosquatting
 
 MAX_LAYER_SCORE = 50
+RDAP_LOOKUP_TIMEOUT_SECONDS = 12.0
 
 
 def _findings_to_dict_list(findings: list[UrlFinding]) -> list[dict]:
@@ -101,15 +103,17 @@ async def analyze_url_with_rdap(
     findings, host, normalized_key = _run_sync_url_rules(url)
 
     try:
-        findings.extend(
-            await check_newly_registered_domain(
+        rdap_findings = await asyncio.wait_for(
+            check_newly_registered_domain(
                 host,
                 findings,
                 http_client,
                 whitelist_trusted=whitelist_trusted,
-            )
+            ),
+            timeout=RDAP_LOOKUP_TIMEOUT_SECONDS,
         )
-    except Exception:
+        findings.extend(rdap_findings)
+    except (asyncio.TimeoutError, Exception):
         pass
 
     return _build_result(findings, host, normalized_key)

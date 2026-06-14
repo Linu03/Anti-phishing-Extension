@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "../fetchWithTimeout";
 import type { BehaviorDiff, BehavioralContextPayload } from "./types";
 
 export type ServerBehavioralResponse = {
@@ -17,7 +18,7 @@ export async function fetchBehavioralAnalyze(
   context: BehavioralContextPayload,
 ): Promise<ServerBehavioralResponse> {
   const url = `${apiBaseUrl}/v1/behavioral/analyze`;
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

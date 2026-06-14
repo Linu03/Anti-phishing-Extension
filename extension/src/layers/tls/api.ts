@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "../fetchWithTimeout";
+
 export type ServerTlsInspectResponse = {
   score: number;
   host: string;
@@ -17,7 +19,7 @@ export async function fetchTlsInspect(
   pageUrl: string,
 ): Promise<ServerTlsInspectResponse> {
   const inspectUrl = apiBaseUrl + "/v1/tls/inspect";
-  const response = await fetch(inspectUrl, {
+  const response = await fetchWithTimeout(inspectUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: pageUrl }),

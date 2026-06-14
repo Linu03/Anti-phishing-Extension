@@ -13,17 +13,7 @@ void (() => {
   }
 
   const ROOT_ID = "anti-phishing-shield-scan-toast";
-
-  const COL = {
-    surface: "#100e0c",
-    border: "#342f2a",
-    ink: "#e9e5df",
-    inkMuted: "#a39a90",
-    warn: "#fbbf24",
-    danger: "#f87171",
-    warnBg: "rgba(120, 53, 15, 0.92)",
-    dangerBg: "rgba(127, 29, 29, 0.92)",
-  } as const;
+  const BADGE_SIZE = "36px";
 
   function removeToast(): void {
     const old = document.getElementById(ROOT_ID);
@@ -35,112 +25,56 @@ void (() => {
   removeToast();
 
   const isHigh = payload.verdict === "high_risk";
-  const accent = isHigh ? COL.danger : COL.warn;
-  const bg = isHigh ? COL.dangerBg : COL.warnBg;
+  const bg = isHigh ? "#dc2626" : "#d97706";
 
-  const root = document.createElement("div");
+  const root = document.createElement("button");
   root.id = ROOT_ID;
-  root.setAttribute("role", "status");
+  root.type = "button";
+  root.setAttribute("role", "alert");
+  root.setAttribute(
+    "aria-label",
+    `Anti-Phishing Shield: ${payload.label}. Click to dismiss.`,
+  );
+  root.title = `Anti-Phishing Shield — ${payload.label}. Open the extension for details.`;
+  root.textContent = "!";
+
   Object.assign(root.style, {
     boxSizing: "border-box",
     position: "fixed",
     top: "12px",
     right: "12px",
     zIndex: "2147483646",
-    width: "min(320px, calc(100vw - 24px))",
-    borderRadius: "8px",
-    border: `1px solid ${COL.border}`,
+    width: BADGE_SIZE,
+    height: BADGE_SIZE,
+    margin: "0",
+    padding: "0",
+    border: "none",
+    borderRadius: "50%",
     background: bg,
-    backdropFilter: "blur(8px)",
-    boxShadow: "0 8px 28px rgba(0,0,0,0.35)",
-    fontFamily: '"Segoe UI", system-ui, sans-serif',
-    color: COL.ink,
-    overflow: "hidden",
-  } as CSSStyleDeclaration);
-
-  const inner = document.createElement("div");
-  Object.assign(inner.style, {
-    display: "flex",
-    alignItems: "flex-start",
-    gap: "10px",
-    padding: "10px 12px",
-  } as CSSStyleDeclaration);
-
-  const icon = document.createElement("div");
-  icon.textContent = "!";
-  Object.assign(icon.style, {
-    flexShrink: "0",
-    width: "22px",
-    height: "22px",
-    borderRadius: "999px",
-    border: `1px solid ${accent}`,
-    color: accent,
+    color: "#ffffff",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    fontSize: "13px",
-    fontWeight: "700",
+    fontFamily: '"Segoe UI", system-ui, sans-serif',
+    fontSize: "20px",
+    fontWeight: "800",
     lineHeight: "1",
-  } as CSSStyleDeclaration);
-
-  const textWrap = document.createElement("div");
-  textWrap.style.minWidth = "0";
-  textWrap.style.flex = "1";
-
-  const title = document.createElement("p");
-  title.textContent = "Anti-Phishing Shield";
-  Object.assign(title.style, {
-    margin: "0 0 2px 0",
-    fontSize: "11px",
-    fontWeight: "600",
-    color: COL.inkMuted,
-    letterSpacing: "0.02em",
-  } as CSSStyleDeclaration);
-
-  const message = document.createElement("p");
-  message.textContent = `Scan complete — ${payload.label}. Open the extension to review.`;
-  Object.assign(message.style, {
-    margin: "0",
-    fontSize: "13px",
-    lineHeight: "1.45",
-    color: COL.ink,
-    fontWeight: "600",
-  } as CSSStyleDeclaration);
-
-  textWrap.appendChild(title);
-  textWrap.appendChild(message);
-
-  const closeBtn = document.createElement("button");
-  closeBtn.type = "button";
-  closeBtn.setAttribute("aria-label", "Dismiss");
-  closeBtn.textContent = "×";
-  Object.assign(closeBtn.style, {
-    flexShrink: "0",
-    border: "none",
-    background: "transparent",
-    color: COL.inkMuted,
     cursor: "pointer",
-    fontSize: "18px",
-    lineHeight: "1",
-    padding: "0",
-    marginTop: "-2px",
+    boxShadow: "0 2px 10px rgba(0,0,0,0.35)",
+    outline: "none",
   } as CSSStyleDeclaration);
-  closeBtn.addEventListener("click", removeToast);
 
-  inner.appendChild(icon);
-  inner.appendChild(textWrap);
-  inner.appendChild(closeBtn);
-  root.appendChild(inner);
+  root.addEventListener("click", removeToast);
 
   root.style.opacity = "0";
-  root.style.transform = "translateY(-6px)";
+  root.style.transform = "scale(0.85)";
   root.style.transition = "opacity 180ms ease, transform 180ms ease";
 
   document.documentElement.appendChild(root);
 
   requestAnimationFrame(() => {
     root.style.opacity = "1";
-    root.style.transform = "translateY(0)";
+    root.style.transform = "scale(1)";
   });
 
   window.setTimeout(removeToast, 12000);

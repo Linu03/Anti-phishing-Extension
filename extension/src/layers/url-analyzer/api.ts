@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "../fetchWithTimeout";
+
 export type ServerUrlAnalyzerResponse = {
   score: number;
   risk: "low" | "medium" | "high";
@@ -17,7 +19,7 @@ export async function fetchUrlAnalyzer(
   whitelistTrusted = false,
 ): Promise<ServerUrlAnalyzerResponse> {
   const analyzeUrl = `${apiBaseUrl}/v1/url-analyzer/analyze`;
-  const response = await fetch(analyzeUrl, {
+  const response = await fetchWithTimeout(analyzeUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ url: pageUrl, whitelist_trusted: whitelistTrusted }),

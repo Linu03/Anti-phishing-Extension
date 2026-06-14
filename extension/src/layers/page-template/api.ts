@@ -1,3 +1,4 @@
+import { fetchWithTimeout } from "../fetchWithTimeout";
 import type { PageSnapshot, PriorLayersContextPayload } from "./types";
 
 export type ServerBrandIdsResponse = {
@@ -23,7 +24,7 @@ export type ServerPageTemplateResponse = {
 
 export async function fetchBrandIds(apiBaseUrl: string): Promise<ServerBrandIdsResponse> {
   const url = `${apiBaseUrl}/v1/page-template/brand-ids`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -37,7 +38,7 @@ export async function fetchScriptFpOrigins(
   apiBaseUrl: string,
 ): Promise<ServerScriptFpOriginsResponse> {
   const url = `${apiBaseUrl}/v1/page-template/script-fp-origins`;
-  const response = await fetch(url);
+  const response = await fetchWithTimeout(url);
 
   if (!response.ok) {
     throw new Error(`HTTP ${response.status}`);
@@ -54,7 +55,7 @@ export async function fetchPageTemplateAnalyze(
   context: PriorLayersContextPayload,
 ): Promise<ServerPageTemplateResponse> {
   const analyzeUrl = `${apiBaseUrl}/v1/page-template/analyze`;
-  const response = await fetch(analyzeUrl, {
+  const response = await fetchWithTimeout(analyzeUrl, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
