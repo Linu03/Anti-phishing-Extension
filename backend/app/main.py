@@ -14,8 +14,7 @@ from app.api.v1.stats import router as stats_router
 from app.api.v1.page_template import router as page_template_router
 from app.api.v1.tls import router as tls_router
 from app.api.v1.url_analyzer import router as url_analyzer_router
-from app.db.init import init_database, shutdown_database
-from app.db.connection import is_pool_ready
+from app.db.init import ensure_database_ready, init_database, shutdown_database
 from app.layers.blacklist.openphish import openphish_store
 from app.layers.blacklist.phishunt import phishunt_store
 
@@ -68,6 +67,6 @@ app.include_router(stats_router, prefix="/v1")
 
 @app.get("/health")
 async def health():
-    database = "ok" if is_pool_ready() else "unavailable"
+    database = "ok" if await ensure_database_ready() else "unavailable"
     status = "ok" if database == "ok" else "degraded"
     return {"status": status, "database": database}

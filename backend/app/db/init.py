@@ -14,6 +14,19 @@ async def init_database() -> None:
     log.info("postgresql schema ready")
 
 
+async def ensure_database_ready() -> bool:
+    if is_pool_ready():
+        return True
+
+    try:
+        await init_database()
+    except Exception as exc:
+        log.warning("postgresql connect retry failed: %s", exc)
+        return False
+
+    return is_pool_ready()
+
+
 async def shutdown_database() -> None:
     if not is_pool_ready():
         return

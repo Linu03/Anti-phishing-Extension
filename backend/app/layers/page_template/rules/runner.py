@@ -11,6 +11,9 @@ from app.layers.page_template.rules.aitm import (
 )
 from app.layers.page_template.rules.brand import check_brand_page_host_mismatch
 from app.layers.page_template.rules.clickfix import check_clickfix_page_signals
+from app.layers.page_template.rules.manipulation import (
+    check_psychological_manipulation_surface,
+)
 from app.layers.page_template.rules.collection import check_collection_status
 from app.layers.page_template.rules.forms import (
     check_http_form_action_on_https_page,
@@ -83,6 +86,7 @@ GENERAL_RULES: list[RuleFn] = [
     check_oauth_aitm_login_surface,
     check_idp_form_on_foreign_host,
     check_clickfix_page_signals,
+    check_psychological_manipulation_surface,
 ]
 
 

@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
-from app.db.connection import is_pool_ready
+from app.db.init import ensure_database_ready
 from app.services.scan_query import StatsPeriod, export_scans_csv, get_stats_summary
 
 router = APIRouter(prefix="/stats", tags=["stats"])
@@ -36,7 +36,7 @@ class StatsSummaryResponse(BaseModel):
 async def stats_summary(
     period: StatsPeriod = Query(default="week"),
 ) -> StatsSummaryResponse:
-    if not is_pool_ready():
+    if not await ensure_database_ready():
         raise HTTPException(status_code=503, detail="database unavailable")
 
     try:
@@ -58,7 +58,7 @@ async def stats_summary(
 async def stats_export_csv(
     period: StatsPeriod | None = Query(default=None),
 ) -> PlainTextResponse:
-    if not is_pool_ready():
+    if not await ensure_database_ready():
         raise HTTPException(status_code=503, detail="database unavailable")
 
     try:

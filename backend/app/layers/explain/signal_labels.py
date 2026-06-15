@@ -64,6 +64,10 @@ RULE_LABELS: dict[str, str] = {
         "The page mimics a CAPTCHA check and tells you to run terminal steps"
         " (such as Win+R and Ctrl+V) — a common ClickFix trick"
     ),
+    "psychological_manipulation_surface": (
+        "The page uses pressure tactics such as fake urgency, crowd numbers,"
+        " or false official claims to push you to act quickly"
+    ),
     "collection_failed": "We could not fully read the page structure",
     # TLS
     "no_https": "The site does not use HTTPS encryption",
@@ -117,6 +121,10 @@ TECHNICAL_RULE_LABELS: dict[str, str] = {
     ),
     "clickfix_lure_surface": (
         "Fake CAPTCHA surface combined with Win+R / Ctrl+V style terminal instructions"
+    ),
+    "psychological_manipulation_surface": (
+        "Persuasive manipulation cues (urgency, numeric social proof, false authority)"
+        " on an already suspicious page"
     ),
     "visual_brand_mismatch": "Page logo matches a known brand but the hostname does not reference it",
     "credential_form_on_free_hosting": "Credential form on a free hosting or site-builder domain",

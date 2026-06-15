@@ -5,7 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.db.connection import is_pool_ready
+from app.db.init import ensure_database_ready
 from app.services.scan_query import StatsPeriod, get_scan_by_id, list_scans
 from app.services.scan_store import build_scan_ingest_input, persist_scan
 
@@ -82,7 +82,7 @@ async def get_scans(
     host: str | None = Query(default=None, max_length=253),
     period: StatsPeriod | None = Query(default=None),
 ) -> ScanListResponse:
-    if not is_pool_ready():
+    if not await ensure_database_ready():
         raise HTTPException(status_code=503, detail="database unavailable")
 
     try:
@@ -106,7 +106,7 @@ async def get_scans(
 
 @router.get("/{scan_id}", response_model=ScanDetailResponse)
 async def get_scan(scan_id: int) -> ScanDetailResponse:
-    if not is_pool_ready():
+    if not await ensure_database_ready():
         raise HTTPException(status_code=503, detail="database unavailable")
 
     if scan_id < 1:
@@ -125,7 +125,7 @@ async def get_scan(scan_id: int) -> ScanDetailResponse:
 
 @router.post("/ingest", response_model=ScanIngestResponse)
 async def ingest_scan(body: ScanIngestRequest) -> ScanIngestResponse:
-    if not is_pool_ready():
+    if not await ensure_database_ready():
         raise HTTPException(status_code=503, detail="database unavailable")
 
     payload = {

@@ -62,6 +62,12 @@ export type CaptchaSurfaceHints = {
   has_real_captcha_widget: boolean;
 };
 
+export type ManipulationSurfaceHints = {
+  has_urgency_fear_pressure: boolean;
+  has_fake_social_proof_numeric: boolean;
+  has_false_authority_language: boolean;
+};
+
 export type PageSnapshot = {
   page_url: string;
   page_host: string;
@@ -88,6 +94,7 @@ export type PageSnapshot = {
   prominent_image: ProminentImage | null;
   favicon: FaviconImage | null;
   captcha_surface: CaptchaSurfaceHints;
+  manipulation_surface: ManipulationSurfaceHints;
 };
 
 export type PriorLayersContextPayload = {

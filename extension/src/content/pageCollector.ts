@@ -1,5 +1,6 @@
 import { matchBrandsFromPage } from "../layers/page-template/brandMatch";
 import { collectCaptchaSurfaceHints } from "../layers/page-template/captchaSurface";
+import { collectManipulationSurfaceHints } from "../layers/page-template/manipulationSurface";
 import { emptyFieldProfile } from "../layers/page-template/emptySnapshot";
 import {
   inputIsHoneypotField,
@@ -871,6 +872,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
     iframes,
     resourceCounts.external_script_origins,
   );
+  const manipulationSurface = collectManipulationSurfaceHints();
 
   let prominentImage: ProminentImage | null = null;
   if (hasSensitiveForm) {
@@ -907,6 +909,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
     prominent_image: prominentImage,
     favicon: null,
     captcha_surface: captchaSurface,
+    manipulation_surface: manipulationSurface,
   };
 }
 

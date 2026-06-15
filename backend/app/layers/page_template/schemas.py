@@ -60,6 +60,12 @@ class CaptchaSurfaceHintsModel(BaseModel):
     has_real_captcha_widget: bool = False
 
 
+class ManipulationSurfaceHintsModel(BaseModel):
+    has_urgency_fear_pressure: bool = False
+    has_fake_social_proof_numeric: bool = False
+    has_false_authority_language: bool = False
+
+
 class PageSnapshotModel(BaseModel):
     page_url: str = Field(..., min_length=4, max_length=8192)
     page_host: str = ""
@@ -90,6 +96,9 @@ class PageSnapshotModel(BaseModel):
     favicon: FaviconImageModel | None = None
     captcha_surface: CaptchaSurfaceHintsModel = Field(
         default_factory=CaptchaSurfaceHintsModel
+    )
+    manipulation_surface: ManipulationSurfaceHintsModel = Field(
+        default_factory=ManipulationSurfaceHintsModel
     )
 
 
