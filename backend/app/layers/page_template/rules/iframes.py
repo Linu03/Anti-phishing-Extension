@@ -6,13 +6,14 @@ import tldextract
 from app.layers.page_template.constants import IFRAME_MAX_TOTAL_POINTS, IFRAME_TRUSTED_ORIGINS
 from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.rules.credential import effective_has_sensitive_form
+from app.layers.url_analyzer.official_domains import is_relaxed_official_page
 from app.layers.page_template.schemas import (
     IframeSnapshotModel,
     PageSnapshotModel,
     PriorLayersContextModel,
 )
 
-POINTS_HIDDEN_CROSS_ORIGIN = 15
+POINTS_HIDDEN_CROSS_ORIGIN = 18
 POINTS_CROSS_ORIGIN_VISIBLE = 10
 
 RULE_HIDDEN_CROSS_ORIGIN = "hidden_cross_origin_iframe"
@@ -139,7 +140,13 @@ def _apply_iframe_points_cap(findings: list[PageFinding]) -> list[PageFinding]:
     return adjusted
 
 
-def check_iframe_signals(snapshot: PageSnapshotModel, _context: PriorLayersContextModel) -> list[PageFinding]:
+def check_iframe_signals(
+    snapshot: PageSnapshotModel,
+    context: PriorLayersContextModel,
+) -> list[PageFinding]:
+    if is_relaxed_official_page(snapshot, context):
+        return []
+
     if not effective_has_sensitive_form(snapshot):
         return []
 

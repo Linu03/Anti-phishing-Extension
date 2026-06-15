@@ -37,6 +37,8 @@ IFRAME_TRUSTED_ORIGINS: frozenset[str] = frozenset(
         "checkout.stripe.com",
         "js.stripe.com",
         "www.paypal.com",
+        "consentcdn.cookiebot.com",
+        "consent.cookiebot.com",
     }
 )
 

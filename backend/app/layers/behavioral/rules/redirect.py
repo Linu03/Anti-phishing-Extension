@@ -4,6 +4,7 @@ import tldextract
 
 from app.layers.behavioral.finding import BehavioralFinding
 from app.layers.behavioral.schemas import BehaviorDiffModel, BehavioralContextModel
+from app.layers.url_analyzer.official_domains import is_official_registered_domain
 
 RAPID_REDIRECT_MS = 3000
 URL_SUSPICIOUS_THRESHOLD = 15
@@ -22,8 +23,18 @@ def _registered_domain(host: str) -> str:
     return f"{extracted.domain}.{extracted.suffix}".lower()
 
 
+def _page_on_official_domain(context: BehavioralContextModel) -> bool:
+    page_host = context.page_host.strip()
+    if page_host == "":
+        return False
+    return is_official_registered_domain(page_host)
+
+
 def _has_phishing_context(context: BehavioralContextModel) -> bool:
-    if context.has_sensitive_form or context.has_credential_form:
+    if context.has_sensitive_form:
+        return True
+
+    if context.has_credential_form and not _page_on_official_domain(context):
         return True
 
     score = context.url_analyzer_score
@@ -48,6 +59,11 @@ def check_rapid_cross_domain_redirect(
     start_pld = _registered_domain(start_host)
     end_pld = _registered_domain(end_host)
     if start_pld == "" or end_pld == "" or start_pld == end_pld:
+        return []
+
+    if is_official_registered_domain(start_host) and is_official_registered_domain(
+        end_host
+    ):
         return []
 
     condition_timing = 0 < diff.redirect_ms <= RAPID_REDIRECT_MS

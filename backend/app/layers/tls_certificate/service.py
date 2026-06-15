@@ -13,6 +13,9 @@ from app.layers.tls_certificate.cache import (
 from app.layers.tls_certificate.finding import TlsFinding
 from app.layers.tls_certificate.inspector import inspect_tls
 from app.layers.tls_certificate.rules import check_certificate, check_no_https
+from app.layers.url_analyzer.official_domains import is_official_registered_domain
+
+OFFICIAL_TLS_SOFT_RULES = frozenset({"untrusted_chain"})
 
 MAX_LAYER_SCORE = 40
 
@@ -74,6 +77,15 @@ async def analyze_tls(url: str) -> dict:
     inspection = await inspect_tls(parsed)
 
     cert_findings = check_certificate(inspection, host)
+    if (
+        is_official_registered_domain(host)
+        and inspection.get("handshake_ok") is True
+    ):
+        cert_findings = [
+            item
+            for item in cert_findings
+            if item.rule not in OFFICIAL_TLS_SOFT_RULES
+        ]
     all_findings.extend(cert_findings)
 
     result = _build_result(host, parsed, all_findings, inspection)

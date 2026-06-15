@@ -14,7 +14,7 @@ from app.layers.url_analyzer.rules.typosquatting import _normalize_leet
 
 RULE_COMBOSQUATTING_LABEL = "combosquatting_label"
 
-POINTS_BRAND_WITH_LURE = 22
+POINTS_BRAND_WITH_LURE = 26
 POINTS_BRAND_ONLY = 12
 
 MIN_TOKEN_LENGTH = 2

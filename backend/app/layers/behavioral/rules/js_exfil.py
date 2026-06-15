@@ -14,7 +14,7 @@ from app.layers.url_analyzer.service import analyze_url
 
 RULE_JS_EXFIL_SUBMIT = "js_exfil_submit"
 
-POINTS_JS_EXFIL_HIGH = 26
+POINTS_JS_EXFIL_HIGH = 30
 POINTS_JS_EXFIL_MEDIUM = 14
 
 URL_SUSPICIOUS_THRESHOLD = 15

@@ -87,6 +87,34 @@ RULE_LABELS: dict[str, str] = {
     "clickfix_full_chain": (
         "Fake CAPTCHA lure plus clipboard command copy — full ClickFix attack pattern"
     ),
+    # Combo boosts (extension threat-pattern layer)
+    "combo_card_harvest_ro": (
+        "Fake brand page collecting both card and CNP/identity data — common Romanian scam"
+    ),
+    "combo_free_hosting_kit": (
+        "Brand impersonation on a free site-builder host — typical quick phishing kit"
+    ),
+    "combo_aitm_proxy": (
+        "Proxy phishing: fake login on a foreign site posting to the real sign-in server"
+    ),
+    "combo_typosquat_confirmed": (
+        "Typosquatted address confirmed by on-page brand impersonation"
+    ),
+    "combo_marketplace_delivery_ro": (
+        "Marketplace or courier delivery scam with payment fields (eMAG/OLX/FanCourier style)"
+    ),
+    "combo_manipulation_phish": (
+        "Urgency or false authority combined with brand impersonation or sensitive fields"
+    ),
+    "combo_clickfix_partial": (
+        "ClickFix-style fake CAPTCHA lure detected without the full attack chain yet"
+    ),
+    "combo_redirect_exfil": (
+        "Quick redirect into a page that steals form data via JavaScript"
+    ),
+    "combo_credential_evasion": (
+        "Hidden or obfuscated login fields on a non-official brand website"
+    ),
 }
 
 # Concise technical phrases for analyst summaries (no scores or matrix fields).
@@ -156,6 +184,23 @@ TECHNICAL_RULE_LABELS: dict[str, str] = {
     "delayed_brand_injection": "Brand-related content injected after load",
     "clickfix_clipboard_shell": "Clipboard write of shell-like command after fake CAPTCHA interaction",
     "clickfix_full_chain": "Fake CAPTCHA lure plus clipboard shell command (ClickFix full chain)",
+    "combo_card_harvest_ro": (
+        "Brand impersonation plus combined card and CNP/identity field collection"
+    ),
+    "combo_free_hosting_kit": "Free hosting domain combined with brand impersonation",
+    "combo_aitm_proxy": "OAuth AitM surface plus IdP form submit from foreign host",
+    "combo_typosquat_confirmed": "Typosquatting hostname plus on-page brand mismatch",
+    "combo_marketplace_delivery_ro": (
+        "Delivery/marketplace lure URL plus sensitive payment field collection"
+    ),
+    "combo_manipulation_phish": (
+        "Psychological manipulation cues on a page with impersonation or sensitive fields"
+    ),
+    "combo_clickfix_partial": "ClickFix lure surface without full behavioral chain",
+    "combo_redirect_exfil": "Rapid cross-domain redirect plus JavaScript form exfiltration",
+    "combo_credential_evasion": (
+        "Hidden password or excessive hidden inputs with brand host mismatch"
+    ),
 }
 
 

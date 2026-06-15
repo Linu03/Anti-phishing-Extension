@@ -32,6 +32,7 @@
     "chatgpt": ["chatgpt.com", "openai.com"],
     "whatsapp": ["whatsapp.com", "whatsapp.net"],
     "upt": ["upt.ro"],
-    "fancourier": ["fancourier.ro"]
+    "fancourier": ["fancourier.ro", "selfawb.ro"],
+    "altex": ["altex.ro"]
   }
 }

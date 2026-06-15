@@ -9,7 +9,7 @@ from app.layers.url_analyzer.finding import UrlFinding
 MIN_BRAND_LENGTH = 4
 MIN_SIMILARITY_SCORE = 82
 MAX_LENGTH_DIFF = 2
-POINTS_TYPOSQUATTING = 12
+POINTS_TYPOSQUATTING = 14
 
 # Digit → letter before fuzzy match (g00gle → google, faceb00k → facebook)
 LEET_MAP = str.maketrans("013458", "oieash")

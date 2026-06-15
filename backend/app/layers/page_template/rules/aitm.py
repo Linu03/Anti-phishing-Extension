@@ -14,8 +14,8 @@ from app.layers.page_template.schemas import (
 RULE_OAUTH_AITM_LOGIN_SURFACE = "oauth_aitm_login_surface"
 RULE_IDP_FORM_ON_FOREIGN_HOST = "idp_form_on_foreign_host"
 
-POINTS_OAUTH_AITM = 30
-POINTS_IDP_FORM_ON_FOREIGN_HOST = 18
+POINTS_OAUTH_AITM = 35
+POINTS_IDP_FORM_ON_FOREIGN_HOST = 28
 
 
 def _primary_oauth_brand_hits(snapshot: PageSnapshotModel) -> list[str]:

@@ -20,6 +20,9 @@ Rules:
 - Explain what it MEANS for the user, not how the check works.
 - Only use warnings that appear in the input. Do not invent new ones.
 - Be calm and helpful, not alarmist.
+- If risk level is Low risk, say the site looks generally fine; do not mention
+  session hijacking, man-in-the-middle attacks, or advanced hacking unless the
+  input explicitly describes impersonation or payment fraud.
 - End with one short action (one sentence): use the official site or do not enter your password here.
 """.strip()
 
@@ -43,6 +46,9 @@ Rules:
 - Group related findings logically; connect ideas across layers.
 - Only use findings from the input. Do not invent warnings.
 - Be factual and concise, not alarmist.
+- If risk level is Low risk, note minor or inconclusive signals only; do not
+  infer adversary-in-the-middle or session hijacking without impersonation or
+  credential-harvesting evidence in the input.
 - End with one short sentence on the main concern.
 """.strip()
 

@@ -7,13 +7,13 @@ export function verdictLabel(v: Verdict): string {
 }
 
 export function verdictFromScore(score: number): Verdict {
-  if (score < 28) return "safe";
-  if (score < 62) return "caution";
+  if (score < 30) return "safe";
+  if (score < 60) return "caution";
   return "high_risk";
 }
 
 export function scoreHue(score: number): string {
-  if (score < 28) return "#34d399";
-  if (score < 62) return "#fbbf24";
+  if (score < 30) return "#34d399";
+  if (score < 60) return "#fbbf24";
   return "#f87171";
 }

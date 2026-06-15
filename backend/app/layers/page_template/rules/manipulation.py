@@ -6,6 +6,7 @@ from app.layers.page_template.rules.trust_context import (
     URL_SCORE_UNTRUSTED_THRESHOLD,
     has_brand_host_mismatch,
 )
+from app.layers.url_analyzer.official_domains import is_relaxed_official_page
 from app.layers.page_template.schemas import (
     ManipulationSurfaceHintsModel,
     PageSnapshotModel,
@@ -13,7 +14,7 @@ from app.layers.page_template.schemas import (
 )
 
 RULE_PSYCHOLOGICAL_MANIPULATION = "psychological_manipulation_surface"
-POINTS_PSYCHOLOGICAL_MANIPULATION = 12
+POINTS_PSYCHOLOGICAL_MANIPULATION = 15
 MIN_ACTIVE_CATEGORIES = 2
 
 
@@ -51,15 +52,15 @@ def _manipulation_gate(
     if context.whitelist_trusted:
         return False
 
-    if effective_has_sensitive_form(snapshot):
-        return True
-
     if has_brand_host_mismatch(snapshot):
         return True
 
     url_score = context.url_analyzer_score
     if url_score is not None and url_score >= URL_SCORE_UNTRUSTED_THRESHOLD:
         return True
+
+    if effective_has_sensitive_form(snapshot):
+        return not is_relaxed_official_page(snapshot, context)
 
     return False
 

@@ -132,6 +132,12 @@ PERCENT_XX_PATTERN = re.compile(r"%[0-9A-Fa-f]{2}")
 
 
 def check_suspicious_encoding(parsed: ParseResult) -> list[UrlFinding]:
+    from app.layers.url_analyzer.official_domains import is_official_registered_domain
+
+    host = (parsed.hostname or "").strip().lower()
+    if host != "" and is_official_registered_domain(host):
+        return []
+
     findings: list[UrlFinding] = []
     target = _path_and_query_text(parsed)
 

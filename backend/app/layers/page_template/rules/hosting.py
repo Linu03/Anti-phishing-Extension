@@ -17,7 +17,7 @@ from app.layers.page_template.schemas import (
 
 RULE_CREDENTIAL_FORM_ON_FREE_HOSTING = "credential_form_on_free_hosting"
 
-POINTS_FREE_HOSTING = 24
+POINTS_FREE_HOSTING = 28
 
 def _registered_domain(host: str) -> str:
     extracted = tldextract.extract(host.strip().lower())

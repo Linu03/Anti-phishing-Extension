@@ -157,6 +157,8 @@ def build_prompt_user_text(request: ExplainRequest) -> str:
     if host == "":
         host = "unknown site"
 
+    low_risk = request.threat_score < 30 or request.verdict.strip().lower() == "safe"
+
     if request.audience == "technical":
         bullets = build_technical_bullets(request)
         closing = (
@@ -164,12 +166,22 @@ def build_prompt_user_text(request: ExplainRequest) -> str:
             "Synthesize across layers into coherent prose. Do not quote the lines "
             "above verbatim, list rule ids, or mention numeric scores."
         )
+        if low_risk:
+            closing = (
+                f"{closing} The overall risk is Low — keep the tone measured; "
+                "do not speculate about AitM or session hijacking."
+            )
     else:
         bullets = build_signal_bullets(request)
         closing = (
             "Write a very short explanation (2-3 sentences) for a non-technical user. "
             "Focus on the main risk in plain language — do not list every bullet."
         )
+        if low_risk:
+            closing = (
+                f"{closing} Overall risk is Low — reassure the user unless bullets "
+                "clearly show impersonation or payment fraud."
+            )
 
     if len(bullets) == 0:
         bullet_text = "- No specific warning signals were recorded."
