@@ -209,8 +209,3 @@ async def fetch_domain_age_days(
 
     set_cached_age_days(domain, None)
     return None
-
-
-def reset_rdap_bootstrap_cache() -> None:
-    global _bootstrap_services
-    _bootstrap_services = None

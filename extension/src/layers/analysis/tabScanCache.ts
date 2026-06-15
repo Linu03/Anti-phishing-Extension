@@ -15,7 +15,7 @@ export function isTabScanCacheStorageKey(key: string): boolean {
   return key.startsWith(CACHE_PREFIX);
 }
 
-export function tabScanCacheKey(tabId: number): string {
+function tabScanCacheKey(tabId: number): string {
   return `${CACHE_PREFIX}${tabId}`;
 }
 

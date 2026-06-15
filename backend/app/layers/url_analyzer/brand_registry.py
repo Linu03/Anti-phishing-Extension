@@ -79,9 +79,3 @@ def get_brand_registry() -> BrandRegistry:
         _registry = load_brand_registry()
 
     return _registry
-
-
-def reload_brand_registry(path: Path | None = None) -> BrandRegistry:
-    global _registry
-    _registry = load_brand_registry(path)
-    return _registry

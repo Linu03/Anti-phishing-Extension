@@ -34,7 +34,10 @@ async function injectScanResultToast(tabId: number, verdict: Verdict): Promise<v
   }
 
   const label = verdictLabel(verdict);
-  const toastPayload = { verdict, label };
+  const toastPayload = {
+    verdict: verdict as "caution" | "high_risk",
+    label,
+  };
 
   try {
     await chrome.scripting.executeScript({

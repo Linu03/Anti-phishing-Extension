@@ -21,8 +21,6 @@ import {
   scanActiveTabIfAuto,
 } from "./autoScan";
 import { startBehaviorObserverForTab } from "../layers/behavioral/startObserverForTab";
-import { DEBUG_SCAN_REPORT_ENABLED } from "../debug/scanDebugIngest";
-import { runFullTabAnalysis } from "../layers/analysis/runFullTabAnalysis";
 import { isRestrictedPageUrl } from "../layers/restrictedPageUrl";
 import { isUrlPersonallyBlocked, normalizeUrlForPersonalBlock, removePersonalBlock } from "../user-lists/personalBlocklist";
 
@@ -39,10 +37,6 @@ type TabLoadMeta = {
 
 const tabLoadMeta = new Map<number, TabLoadMeta>();
 
-/** TEMP DEBUG — wait for behavioral observer before auto scan-report. */
-const DEBUG_SCAN_WAIT_MS = 9500;
-const debugScanTimers = new Map<number, ReturnType<typeof setTimeout>>();
-
 chrome.storage.onChanged.addListener((changes, areaName) => {
   if (areaName !== "local" || !changes.userSettings) {
     return;
@@ -56,25 +50,6 @@ chrome.storage.onChanged.addListener((changes, areaName) => {
     void scanActiveTabIfAuto();
   }
 });
-
-function scheduleDebugScanReport(tabId: number, pageUrl: string, pageTitle: string): void {
-  if (!DEBUG_SCAN_REPORT_ENABLED) {
-    return;
-  }
-
-  const existing = debugScanTimers.get(tabId);
-  if (existing !== undefined) {
-    clearTimeout(existing);
-  }
-
-  debugScanTimers.set(
-    tabId,
-    setTimeout(() => {
-      debugScanTimers.delete(tabId);
-      void runFullTabAnalysis(pageUrl, pageTitle, { tabId });
-    }, DEBUG_SCAN_WAIT_MS),
-  );
-}
 
 function hostFromHttpUrl(url: string): string {
   try {
@@ -226,11 +201,6 @@ chrome.tabs.onRemoved.addListener((tabId) => {
   warnedUrlByTabId.delete(tabId);
   tabLoadMeta.delete(tabId);
   clearAutoScanStateForTab(tabId);
-  const debugTimer = debugScanTimers.get(tabId);
-  if (debugTimer !== undefined) {
-    clearTimeout(debugTimer);
-    debugScanTimers.delete(tabId);
-  }
   void clearRedirectEvidenceForTab(tabId);
 });
 
@@ -276,8 +246,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
       host: hostFromHttpUrl(pageUrl),
       loadedAt: Date.now(),
     });
-
-    scheduleDebugScanReport(tabId, pageUrl, tab.title ?? "");
   }
 });
 

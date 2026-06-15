@@ -48,7 +48,3 @@ def set_cached_age_days(domain: str, age_days: int | None) -> None:
         ttl = TTL_YOUNG_DOMAIN_SECONDS
 
     _store[normalized] = (time.time() + ttl, age_days)
-
-
-def reset_rdap_cache() -> None:
-    _store.clear()

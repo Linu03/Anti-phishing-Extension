@@ -125,11 +125,6 @@ def get_brand_logo_registry() -> list[BrandLogoEntry]:
     return _registry
 
 
-def reset_brand_logo_registry() -> None:
-    global _registry
-    _registry = None
-
-
 def _is_fetchable_image_url(image_url: str) -> bool:
     parsed = urlparse(image_url.strip())
     return parsed.scheme in {"http", "https"} and parsed.netloc != ""

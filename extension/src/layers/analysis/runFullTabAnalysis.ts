@@ -1,47 +1,31 @@
 import { runBlocklistStep } from "../blacklist/runStep";
 import { getBehaviorDiffForTab } from "../behavioral/behaviorDiffStorage";
-import { readRedirectEvidence } from "../behavioral/redirectEvidence";
 import { runBehavioralStep } from "../behavioral/runStep";
 import { startBehaviorObserverForTab } from "../behavioral/startObserverForTab";
 import type { BehavioralContextPayload } from "../behavioral/types";
-import { getApiBaseUrl } from "../apiBase";
 import { hostFromInput } from "../urlHost";
-import { getCachedBrandIds } from "../page-template/brandIdsCache";
-import { collectPageSnapshotFromTab } from "../page-template/collectFromTab";
-import { getCachedScriptFpOrigins } from "../page-template/scriptFpOriginsCache";
-import type { PageSnapshot } from "../page-template/types";
 import { runPageTemplateStep } from "../page-template/runStep";
 import { runTlsStep } from "../tls/runStep";
 import type { AnalysisSnapshot } from "../types";
 import { runUrlAnalyzerStep } from "../url-analyzer/runStep";
 import { runWhitelistStep } from "../whitelist/runStep";
-import {
-  buildScanDebugBundle,
-  DEBUG_SCAN_REPORT_ENABLED,
-  persistScanDebugReport,
-} from "../../debug/scanDebugIngest";
 import { composePhishingAnalysis } from "./composePhishingAnalysis";
 import { buildPriorLayersContext } from "./priorLayersContext";
 import { persistScanRecord } from "./persistScanRecord";
 
-export type RunFullTabAnalysisOptions = {
+type RunFullTabAnalysisOptions = {
   tabId?: number;
 };
 
 async function waitForDomMaturity(
   tabId: number | undefined,
   pageUrl: string,
-): Promise<{ behaviorDiff: Awaited<ReturnType<typeof getBehaviorDiffForTab>>; redirectEvidence: Awaited<ReturnType<typeof readRedirectEvidence>> }> {
+): Promise<Awaited<ReturnType<typeof getBehaviorDiffForTab>>> {
   if (tabId === undefined) {
-    return { behaviorDiff: null, redirectEvidence: null };
+    return null;
   }
 
-  const [behaviorDiff, redirectEvidence] = await Promise.all([
-    getBehaviorDiffForTab(tabId, pageUrl),
-    readRedirectEvidence(tabId),
-  ]);
-
-  return { behaviorDiff, redirectEvidence };
+  return getBehaviorDiffForTab(tabId, pageUrl);
 }
 
 export async function runFullTabAnalysis(
@@ -60,13 +44,11 @@ export async function runFullTabAnalysis(
   const blocklistStep = await runBlocklistStep(pageUrl);
   const whitelistTrusted = whitelistStep.status === "trusted";
 
-  const [urlAnalyzerStep, tlsStep, domMaturity] = await Promise.all([
+  const [urlAnalyzerStep, tlsStep, behaviorDiff] = await Promise.all([
     runUrlAnalyzerStep(pageUrl, whitelistTrusted),
     runTlsStep(pageUrl),
     waitForDomMaturity(activeTabId, pageUrl),
   ]);
-
-  const { behaviorDiff, redirectEvidence } = domMaturity;
 
   const priorContext = buildPriorLayersContext(
     blocklistStep,
@@ -113,46 +95,6 @@ export async function runFullTabAnalysis(
     pageTemplateStep,
     behavioralStep,
   );
-
-  if (DEBUG_SCAN_REPORT_ENABLED) {
-    let pageSnapshot: PageSnapshot | null = null;
-    let snapshotInjectFailed = false;
-    if (activeTabId !== undefined) {
-      try {
-        const baseUrl = getApiBaseUrl();
-        const brandIds = await getCachedBrandIds(baseUrl);
-        const scriptFpOrigins = await getCachedScriptFpOrigins(baseUrl);
-        pageSnapshot = await collectPageSnapshotFromTab(activeTabId, brandIds, scriptFpOrigins);
-        snapshotInjectFailed = pageSnapshot === null;
-      } catch {
-        pageSnapshot = null;
-        snapshotInjectFailed = true;
-      }
-    }
-
-    const bundle = buildScanDebugBundle({
-      scanned_at: new Date().toISOString(),
-      page_url: urlForUi,
-      page_title: pageTitle,
-      tab_id: activeTabId ?? null,
-      page_snapshot: pageSnapshot,
-      snapshot_inject_failed: snapshotInjectFailed,
-      prior_context: priorContext,
-      behavioral_context: behavioralContext,
-      behavior_diff: behaviorDiff,
-      redirect_evidence: redirectEvidence,
-      steps: {
-        blocklist: blocklistStep,
-        whitelist: whitelistStep,
-        url_analyzer: urlAnalyzerStep,
-        tls: tlsStep,
-        page_template: pageTemplateStep,
-        behavioral: behavioralStep,
-      },
-      composed: analysis,
-    });
-    void persistScanDebugReport(bundle);
-  }
 
   void persistScanRecord(analysis);
 

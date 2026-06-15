@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import re
-
 # Short plain-English labels for rule ids (non-technical audience).
 # If a rule is missing here, we fall back to the detail text from the scan.
 RULE_LABELS: dict[str, str] = {

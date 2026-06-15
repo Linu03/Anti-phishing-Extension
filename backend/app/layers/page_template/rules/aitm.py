@@ -5,11 +5,7 @@ from app.layers.page_template.finding import PageFinding
 from app.layers.page_template.impersonation_registry import get_impersonation_registry
 from app.layers.page_template.rules.brand import _host_from_origin, host_matches_brand
 from app.layers.page_template.rules.credential import effective_has_sensitive_form
-from app.layers.page_template.schemas import (
-    FieldProfileModel,
-    PageSnapshotModel,
-    PriorLayersContextModel,
-)
+from app.layers.page_template.schemas import PageSnapshotModel, PriorLayersContextModel
 
 RULE_OAUTH_AITM_LOGIN_SURFACE = "oauth_aitm_login_surface"
 RULE_IDP_FORM_ON_FOREIGN_HOST = "idp_form_on_foreign_host"
