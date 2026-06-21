@@ -24,7 +24,7 @@ function ScanModeOption({
       onClick={() => {
         onSelect(mode);
       }}
-      className={`w-full rounded-md border px-3 py-2.5 text-left transition ${
+      className={`w-full rounded-md border px-3 py-2 text-left transition ${
         selected
           ? "border-accent-line/50 bg-surface-elevated"
           : "border-surface-border bg-surface-elevated/80 hover:bg-surface-elevated"
@@ -65,7 +65,7 @@ function ExplanationModeOption({
       onClick={() => {
         onSelect(mode);
       }}
-      className={`w-full rounded-md border px-3 py-2.5 text-left transition ${
+      className={`w-full rounded-md border px-3 py-2 text-left transition ${
         selected
           ? "border-accent-line/50 bg-surface-elevated"
           : "border-surface-border bg-surface-elevated/80 hover:bg-surface-elevated"
@@ -118,10 +118,10 @@ export function SettingsPanel() {
   }
 
   return (
-    <div className="space-y-3 px-4 py-2.5">
+    <div className="space-y-2.5 px-4 py-2">
       <div>
-        <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">When to scan</p>
-        <div className="space-y-2">
+        <p className="mb-1.5 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">When to scan</p>
+        <div className="space-y-1.5">
           <ScanModeOption
             mode="manual"
             selected={scanMode === "manual"}
@@ -136,7 +136,7 @@ export function SettingsPanel() {
             mode="auto_when_ready"
             selected={scanMode === "auto_when_ready"}
             title="Background scan"
-            description="Scan each site in the background when you visit it. Results appear when all layers finish (including behavioral). Medium or high risk shows an in-page alert and a badge on the extension icon."
+            description="Scan each site automatically when you visit it. Risky pages show an in-page alert and a badge."
             icon={<Timer className="h-4 w-4" strokeWidth={1.5} />}
             onSelect={(mode) => {
               void handleSelectScanMode(mode);
@@ -146,8 +146,8 @@ export function SettingsPanel() {
       </div>
 
       <div>
-        <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Explanation</p>
-        <div className="space-y-2">
+        <p className="mb-1.5 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Explanation</p>
+        <div className="space-y-1.5">
           <ExplanationModeOption
             mode="off"
             selected={explanationMode === "off"}
@@ -182,11 +182,11 @@ export function SettingsPanel() {
       </div>
 
       <div>
-        <p className="mb-2 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Statistics</p>
+        <p className="mb-1.5 font-sans text-[10px] font-medium uppercase tracking-wider text-ink-faint">Statistics</p>
         <button
           type="button"
           onClick={openStatsPage}
-          className="flex w-full items-center gap-2.5 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2.5 text-left transition hover:bg-surface-elevated"
+          className="flex w-full items-center gap-2.5 rounded-md border border-surface-border bg-surface-elevated/80 px-3 py-2 text-left transition hover:bg-surface-elevated"
         >
           <BarChart3 className="h-4 w-4 shrink-0 text-accent-line" strokeWidth={1.5} />
           <div>

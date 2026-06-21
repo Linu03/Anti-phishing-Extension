@@ -10,8 +10,6 @@ MIN_BRAND_LENGTH = 4
 MIN_SIMILARITY_SCORE = 82
 MAX_LENGTH_DIFF = 2
 POINTS_TYPOSQUATTING = 14
-
-# Digit → letter before fuzzy match (g00gle → google, faceb00k → facebook)
 LEET_MAP = str.maketrans("013458", "oieash")
 
 
@@ -43,9 +41,7 @@ def _is_legitimate_host(host: str, registry: BrandRegistry) -> bool:
     return registered in registry.legitimate_domains
 
 
-def _find_best_brand_match(
-    sld: str, registry: BrandRegistry
-) -> tuple[str, int, bool] | None:
+def _find_best_brand_match(sld: str, registry: BrandRegistry) -> tuple[str, int, bool] | None:
     sld_leet = _normalize_leet(sld)
     used_leet_normalization = sld_leet != sld
 

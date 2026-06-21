@@ -2,12 +2,8 @@ import type { AnalysisSnapshot } from "../types";
 import { hostFromInput } from "../urlHost";
 import type { ExplainAudience, ExplainRequest } from "./types";
 
-export function buildExplainPayload(
-  snapshot: AnalysisSnapshot,
-  audience: ExplainAudience,
-): ExplainRequest {
-  const sourceLayers =
-    audience === "plain" || audience === "technical"
+export function buildExplainPayload(snapshot: AnalysisSnapshot,audience: ExplainAudience): ExplainRequest {
+  const sourceLayers = audience === "plain" || audience === "technical"
       ? snapshot.layers.filter((layer) => layer.contribution !== 0)
       : snapshot.layers;
 
