@@ -1,10 +1,55 @@
-import { ArrowLeft, Settings, Shield } from "lucide-react";
+import { useEffect, useState } from "react";
+import { ArrowLeft, Moon, Settings, Shield, Sun } from "lucide-react";
+import { applyTheme } from "../settings/applyTheme";
+import { getUserSettings, updateUserSettings } from "../settings/storage";
+import type { Theme } from "../settings/types";
 
 type PopupHeaderProps = {
   variant: "main" | "settings";
   onSettingsClick?: () => void;
   onBackClick?: () => void;
 };
+
+function ThemeToggleButton() {
+  const [theme, setTheme] = useState<Theme>("dark");
+
+  useEffect(() => {
+    let stillMounted = true;
+    void getUserSettings().then((settings) => {
+      if (stillMounted) {
+        setTheme(settings.theme);
+      }
+    });
+    return () => {
+      stillMounted = false;
+    };
+  }, []);
+
+  async function toggle() {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    setTheme(next);
+    applyTheme(next);
+    await updateUserSettings({ theme: next });
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => {
+        void toggle();
+      }}
+      aria-label={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      title={theme === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+      className="flex h-8 w-8 shrink-0 items-center justify-center rounded border border-surface-border bg-surface text-ink-muted transition hover:bg-surface-elevated hover:text-ink"
+    >
+      {theme === "dark" ? (
+        <Sun className="h-4 w-4" strokeWidth={1.5} />
+      ) : (
+        <Moon className="h-4 w-4" strokeWidth={1.5} />
+      )}
+    </button>
+  );
+}
 
 export function PopupHeader({ variant, onSettingsClick, onBackClick }: PopupHeaderProps) {
   if (variant === "settings") {
@@ -22,6 +67,7 @@ export function PopupHeader({ variant, onSettingsClick, onBackClick }: PopupHead
           <div className="min-w-0 flex-1">
             <h1 className="font-serif text-base font-semibold leading-tight text-ink">Settings</h1>
           </div>
+          <ThemeToggleButton />
         </div>
       </div>
     );

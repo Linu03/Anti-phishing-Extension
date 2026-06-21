@@ -22,12 +22,12 @@ import { PopupSlideShell } from "./PopupSlideShell";
 
 function verdictPillClass(verdict: Verdict): string {
   if (verdict === "safe") {
-    return "border-emerald-900/40 bg-emerald-950/30 text-accent-safe";
+    return "border-accent-safe/40 bg-accent-safe/10 text-accent-safe";
   }
   if (verdict === "caution") {
-    return "border-amber-900/30 bg-amber-950/20 text-accent-warn";
+    return "border-accent-warn/40 bg-accent-warn/10 text-accent-warn";
   }
-  return "border-red-900/40 bg-red-950/35 text-red-300";
+  return "border-accent-danger/40 bg-accent-danger/10 text-accent-danger";
 }
 
 function VerdictIcon({ verdict }: { verdict: Verdict }) {
@@ -80,7 +80,7 @@ function VerdictRiskPanel({
               {score} / 100
             </span>
           </div>
-          <div className="mt-2 h-1 overflow-hidden rounded-full bg-[#342f2a]" aria-hidden>
+          <div className="mt-2 h-1 overflow-hidden rounded-full bg-surface-border" aria-hidden>
             <div className="h-full rounded-full transition-all" style={{ width: `${pct}%`, backgroundColor: hue }} />
           </div>
         </div>
@@ -239,7 +239,7 @@ function TrustedSitePanel({
 }) {
   return (
     <div className="space-y-3 px-4 py-2.5">
-      <div className="flex items-start gap-2.5 rounded-lg border border-emerald-900/40 bg-emerald-950/20 px-3 py-3">
+      <div className="flex items-start gap-2.5 rounded-lg border border-accent-safe/40 bg-accent-safe/10 px-3 py-3">
         <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-accent-safe" strokeWidth={2} aria-hidden />
         <p className="font-sans text-sm leading-snug text-ink-muted">
           This site is on your trusted list. The extension skips scanning for this host.
@@ -918,7 +918,7 @@ export function PopupApp() {
                     onClick={() => {
                       void handleAddCurrentSiteToPersonalList();
                     }}
-                    className="flex items-center justify-center gap-2 rounded-lg border border-red-900/50 bg-red-950/35 px-3 py-2.5 font-sans text-sm font-medium text-red-300 transition hover:bg-red-950/50 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="flex items-center justify-center gap-2 rounded-lg border border-accent-danger/50 bg-accent-danger/10 px-3 py-2.5 font-sans text-sm font-medium text-accent-danger transition hover:bg-accent-danger/20 disabled:cursor-not-allowed disabled:opacity-50"
                   >
                     <Ban className="h-4 w-4 shrink-0" strokeWidth={2} />
                     Block site

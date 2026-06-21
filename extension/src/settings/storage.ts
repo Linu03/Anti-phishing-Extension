@@ -2,6 +2,7 @@ import {
   DEFAULT_USER_SETTINGS,
   type ExplanationMode,
   type ScanMode,
+  type Theme,
   type UserSettings,
 } from "./types";
 
@@ -13,6 +14,13 @@ function isScanMode(value: unknown): value is ScanMode {
 
 function isExplanationMode(value: unknown): value is ExplanationMode {
   return value === "off" || value === "technical" || value === "plain";
+}
+
+function parseTheme(value: unknown): Theme {
+  if (value === "dark" || value === "light") {
+    return value;
+  }
+  return DEFAULT_USER_SETTINGS.theme;
 }
 
 function parseExplanationMode(raw: Record<string, unknown>): ExplanationMode {
@@ -38,12 +46,13 @@ export async function getUserSettings(): Promise<UserSettings> {
   const obj = raw as Record<string, unknown>;
   const scanMode = obj.scanMode;
   if (!isScanMode(scanMode)) {
-    return { ...DEFAULT_USER_SETTINGS };
+    return { ...DEFAULT_USER_SETTINGS, theme: parseTheme(obj.theme) };
   }
 
   return {
     scanMode,
     explanationMode: parseExplanationMode(obj),
+    theme: parseTheme(obj.theme),
   };
 }
 

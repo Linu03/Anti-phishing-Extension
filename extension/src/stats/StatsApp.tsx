@@ -44,12 +44,12 @@ const PAGE_SIZE = 20;
 
 function verdictBadgeClass(verdict: Verdict): string {
   if (verdict === "safe") {
-    return "border-emerald-900/40 bg-emerald-950/30 text-accent-safe";
+    return "border-accent-safe/40 bg-accent-safe/10 text-accent-safe";
   }
   if (verdict === "caution") {
-    return "border-amber-900/30 bg-amber-950/20 text-accent-warn";
+    return "border-accent-warn/40 bg-accent-warn/10 text-accent-warn";
   }
-  return "border-red-900/40 bg-red-950/35 text-red-300";
+  return "border-accent-danger/40 bg-accent-danger/10 text-accent-danger";
 }
 
 function formatWhen(iso: string): string {
@@ -71,7 +71,7 @@ function periodLabel(period: StatsPeriod): string {
 
 function StatCard({ label, value, tone }: { label: string; value: number; tone?: "danger" | "warn" | "safe" | "neutral" }) {
   let valueClass = "text-ink";
-  if (tone === "danger") valueClass = "text-red-300";
+  if (tone === "danger") valueClass = "text-accent-danger";
   if (tone === "warn") valueClass = "text-accent-warn";
   if (tone === "safe") valueClass = "text-accent-safe";
 
@@ -148,7 +148,7 @@ function OverviewTab({ period }: { period: StatsPeriod }) {
 
       {loading ? <p className="font-sans text-sm text-ink-muted">Loading…</p> : null}
       {error ? (
-        <div className="rounded-lg border border-red-900/40 bg-red-950/20 px-4 py-3 font-sans text-sm text-red-300">
+        <div className="rounded-lg border border-accent-danger/40 bg-accent-danger/10 px-4 py-3 font-sans text-sm text-accent-danger">
           {error}
           {error.includes("database") || error.includes("503") ? (
             <p className="mt-2 text-xs text-ink-muted">Make sure PostgreSQL and the backend are running (`/health` → database ok).</p>
@@ -228,7 +228,7 @@ function ScanDetailPanel({ scanId, onClose }: { scanId: number; onClose: () => v
         </button>
       </div>
       {loading ? <p className="font-sans text-sm text-ink-muted">Loading…</p> : null}
-      {error ? <p className="font-sans text-sm text-red-300">{error}</p> : null}
+      {error ? <p className="font-sans text-sm text-accent-danger">{error}</p> : null}
       {detail ? (
         <div className="space-y-3">
           <div>
@@ -356,7 +356,7 @@ function HistoryTab({ period }: { period: StatsPeriod }) {
       </div>
 
       {loading ? <p className="font-sans text-sm text-ink-muted">Loading…</p> : null}
-      {error ? <p className="font-sans text-sm text-red-300">{error}</p> : null}
+      {error ? <p className="font-sans text-sm text-accent-danger">{error}</p> : null}
 
       {!loading && items.length === 0 ? (
         <p className="font-sans text-sm text-ink-muted">No scans found.</p>
@@ -489,7 +489,7 @@ function ListsTab() {
                   onClick={() => {
                     void onRemove(host);
                   }}
-                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-surface-border px-2 py-1 font-sans text-[10px] text-ink-muted hover:text-red-300"
+                  className="inline-flex shrink-0 items-center gap-1 rounded-md border border-surface-border px-2 py-1 font-sans text-[10px] text-ink-muted hover:text-accent-danger"
                 >
                   <Trash2 className="h-3 w-3" />
                   Remove

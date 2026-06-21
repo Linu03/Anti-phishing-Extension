@@ -9,12 +9,41 @@
 @tailwind components;
 @tailwind utilities;
 
+
+:root {
+  --surface: 16 14 12;
+  --surface-elevated: 26 23 20;
+  --surface-paper: 34 31 27;
+  --surface-border: 52 47 42;
+  --ink: 233 229 223;
+  --ink-muted: 163 154 144;
+  --ink-faint: 107 101 96;
+  --accent-safe: 143 184 154;
+  --accent-warn: 212 165 116;
+  --accent-danger: 201 125 114;
+  --accent-line: 74 107 124;
+}
+
+:root[data-theme="light"] {
+  --surface: 250 248 245;
+  --surface-elevated: 255 255 255;
+  --surface-paper: 241 237 231;
+  --surface-border: 224 217 208;
+  --ink: 43 39 36;
+  --ink-muted: 107 98 88;
+  --ink-faint: 154 144 133;
+  --accent-safe: 77 128 97;
+  --accent-warn: 176 109 38;
+  --accent-danger: 181 72 60;
+  --accent-line: 58 97 115;
+}
+
 html,
 body {
   margin: 0;
   overflow: hidden;
-  background: #100e0c;
-  color: #e9e5df;
+  background: rgb(var(--surface));
+  color: rgb(var(--ink));
   font-family: "Source Sans 3", sans-serif;
   -webkit-font-smoothing: antialiased;
   scrollbar-width: none;

@@ -9,21 +9,21 @@ export default {
       },
       colors: {
         surface: {
-          DEFAULT: "#100e0c",
-          elevated: "#1a1714",
-          paper: "#221f1b",
-          border: "#342f2a",
+          DEFAULT: "rgb(var(--surface) / <alpha-value>)",
+          elevated: "rgb(var(--surface-elevated) / <alpha-value>)",
+          paper: "rgb(var(--surface-paper) / <alpha-value>)",
+          border: "rgb(var(--surface-border) / <alpha-value>)",
         },
         ink: {
-          DEFAULT: "#e9e5df",
-          muted: "#a39a90",
-          faint: "#6b6560",
+          DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+          muted: "rgb(var(--ink-muted) / <alpha-value>)",
+          faint: "rgb(var(--ink-faint) / <alpha-value>)",
         },
         accent: {
-          safe: "#8fb89a",
-          warn: "#d4a574",
-          danger: "#c97d72",
-          line: "#4a6b7c",
+          safe: "rgb(var(--accent-safe) / <alpha-value>)",
+          warn: "rgb(var(--accent-warn) / <alpha-value>)",
+          danger: "rgb(var(--accent-danger) / <alpha-value>)",
+          line: "rgb(var(--accent-line) / <alpha-value>)",
         },
       },
       letterSpacing: {
