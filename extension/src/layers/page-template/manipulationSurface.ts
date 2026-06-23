@@ -26,8 +26,6 @@ const URGENCY_FEAR_PHRASES = [
   "avoid being locked",
   "în 24 de ore",
   "within 24 hours",
-  "imediat",
-  "immediately",
   "plata va fi anulată",
   "payment will be cancelled",
   "datele vor fi șterse",
@@ -36,18 +34,16 @@ const URGENCY_FEAR_PHRASES = [
 
 const URGENCY_FEAR_REGEXES = [
   /\b(expir|expire)[a-zăâîșț]*\b.{0,40}\b\d{1,3}\s*(minute|min|ore|hour|hours|zile|days)\b/i,
-  /\b\d{1,2}:\d{2}:\d{2}\b/,
-  /\bsuspend(at|ed|area|are)?\b/i,
-  /\bcompromis|compromised\b/i,
+  /\b(cont|contul|account)\b.{0,40}\bsuspend(at|ed|are|area)?\b/i,
+  /\b(compromis|compromised)\b/i,
 ] as const;
 
 const SOCIAL_PROOF_REGEXES = [
   /\b\d{2,}[\d.,\s]*\s*(persoane|people|users|utilizatori)\b/i,
-  /\b(peste|over|more than)\s+\d{2,}\b/i,
   /\bultimele\s+\d{1,3}\s+(locuri|places|spots)\b/i,
   /\b\d+\s+de\s+persoane\b/i,
   /\b\d{2,}\s+(persoane|utilizatori).{0,50}(verific|confirm|completeaz|checking|viewing)/i,
-  /\b(verific|confirm).{0,40}(acum|now|astăzi|today)\b/i,
+  /\b(verific|confirm)[a-zăâîșț]*\b.{0,40}\b(acum|now|astăzi|today)\b/i,
 ] as const;
 
 const AUTHORITY_PHRASES = [
@@ -69,12 +65,90 @@ const AUTHORITY_PHRASES = [
   "national bank",
 ] as const;
 
-function normalizedBodyText(): string {
+const MAX_SURFACE_CHARS = 6000;
+const EXCLUDED_TAGS = new Set(["NAV", "HEADER", "FOOTER", "SCRIPT", "STYLE", "NOSCRIPT"]);
+
+function safeText(node: Element | null): string {
+  if (node === null) {
+    return "";
+  }
   try {
-    return (document.body?.textContent ?? "").replace(/\s+/g, " ").trim().toLowerCase();
+    return node.textContent ?? "";
   } catch {
     return "";
   }
+}
+
+// Container around the auth form: climb a few levels so pressure text rendered
+// next to the form is captured, but stop before swallowing whole-page chrome.
+function authFormContainer(): Element | null {
+  let form: Element | null = null;
+  try {
+    const pwd = document.querySelector('input[type="password"]');
+    form = pwd !== null ? pwd.closest("form") : null;
+    if (form === null) {
+      form = document.querySelector("form");
+    }
+  } catch {
+    return null;
+  }
+
+  if (form === null) {
+    return null;
+  }
+
+  let node: Element = form;
+  for (let i = 0; i < 3; i++) {
+    const parent = node.parentElement;
+    if (parent === null || parent === document.body || parent.tagName === "MAIN") {
+      break;
+    }
+    node = parent;
+  }
+  return node;
+}
+
+// Banners / modals / alerts anywhere on the page — where phishing pressure text
+// is often rendered even when it sits outside the form container.
+function alertLikeText(): string {
+  const parts: string[] = [];
+  try {
+    const selector =
+      '[role="alert"], [role="alertdialog"], [role="dialog"], .alert, .banner, .notice, .notification, .toast, .modal';
+    const nodes = document.querySelectorAll(selector);
+    const limit = nodes.length < 12 ? nodes.length : 12;
+    for (let i = 0; i < limit; i++) {
+      const el = nodes[i];
+      if (!EXCLUDED_TAGS.has(el.tagName)) {
+        parts.push(safeText(el));
+      }
+    }
+  } catch {
+    // ignore
+  }
+  return parts.join(" ");
+}
+
+function fallbackSurfaceText(): string {
+  try {
+    const main = document.querySelector("main");
+    if (main !== null) {
+      return safeText(main);
+    }
+  } catch {
+    // ignore
+  }
+  return safeText(document.body);
+}
+
+// Scoped manipulation text: the auth surface (form container + alert/banner
+// elements), not the entire page body. This avoids matching generic marketing
+// copy in the header/nav/footer of legitimate sites.
+function normalizedAuthSurfaceText(): string {
+  const container = authFormContainer();
+  const base = container !== null ? safeText(container) : fallbackSurfaceText();
+  const raw = `${base} ${alertLikeText()}`;
+  return raw.replace(/\s+/g, " ").trim().toLowerCase().slice(0, MAX_SURFACE_CHARS);
 }
 
 function textHasAnyPhrase(text: string, phrases: readonly string[]): boolean {
@@ -124,7 +198,7 @@ export function emptyManipulationSurfaceHints(): ManipulationSurfaceHints {
 }
 
 export function collectManipulationSurfaceHints(): ManipulationSurfaceHints {
-  const text = normalizedBodyText();
+  const text = normalizedAuthSurfaceText();
   const hints = emptyManipulationSurfaceHints();
 
   if (text === "") {

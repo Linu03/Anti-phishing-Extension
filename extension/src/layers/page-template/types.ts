@@ -88,6 +88,7 @@ export type PageSnapshot = {
   external_resource_ratio: number;
   brand_hits: string[];
   primary_brand_hits: string[];
+  link_hosts: string[];
   hidden_input_count: number;
   is_framed: boolean;
   field_profile: FieldProfile;

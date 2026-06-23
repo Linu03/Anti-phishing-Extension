@@ -367,6 +367,39 @@ function collectBrands(brandIds: string[]): { primary_brand_hits: string[]; bran
   );
 }
 
+const MAX_LINK_HOSTS = 60;
+const MAX_ANCHORS_SCANNED = 400;
+
+// Deduped hostnames of outbound <a href> links. Used backend-side to recognise
+// legitimate brand links (e.g. a footer "Instagram" link to instagram.com) so
+// they are not treated as brand impersonation.
+function collectLinkHosts(pageHref: string, pageHost: string): string[] {
+  const hosts: string[] = [];
+  try {
+    const anchors = document.querySelectorAll("a[href]");
+    const limit = anchors.length < MAX_ANCHORS_SCANNED ? anchors.length : MAX_ANCHORS_SCANNED;
+    for (let i = 0; i < limit; i++) {
+      const raw = anchors[i].getAttribute("href") ?? "";
+      if (raw === "") {
+        continue;
+      }
+      const host = safeHostname(raw, pageHref);
+      if (host === "" || host === pageHost) {
+        continue;
+      }
+      if (!hosts.includes(host)) {
+        hosts.push(host);
+        if (hosts.length >= MAX_LINK_HOSTS) {
+          break;
+        }
+      }
+    }
+  } catch {
+    // non-fatal
+  }
+  return hosts;
+}
+
 function countHiddenInputs(): number {
   try {
     return document.querySelectorAll('input[type="hidden"]').length;
@@ -788,6 +821,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
   let brandPrimary: string[] = [];
   let brandAll: string[] = [];
   let hiddenInputCount = 0;
+  let linkHosts: string[] = [];
   let resourceCounts = emptyResourceCounts();
 
   try {
@@ -855,6 +889,12 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
   }
 
   try {
+    linkHosts = collectLinkHosts(pageHref, pageHost);
+  } catch {
+    linkHosts = [];
+  }
+
+  try {
     resourceCounts = collectPageResources(pageHref, pageHost, scriptFpOrigins);
   } catch {
     resourceCounts = emptyResourceCounts();
@@ -902,6 +942,7 @@ export function collectPageSnapshot(brandIds: string[], scriptFpOrigins: string[
     external_resource_ratio: resourceCounts.external_resource_ratio,
     brand_hits: brandAll,
     primary_brand_hits: brandPrimary,
+    link_hosts: linkHosts,
     hidden_input_count: hiddenInputCount,
     is_framed: pageIsFramed(),
     field_profile: fieldProfile,

@@ -22,6 +22,24 @@ POINTS_BRAND_MISMATCH_SECONDARY = 12
 
 RULE_NAME = "brand_page_host_mismatch"
 
+# Social-media brands that, on a secondary surface, are virtually always
+# footer/profile links rather than impersonation.
+SOCIAL_LINK_BRANDS = frozenset(
+    {
+        "instagram",
+        "twitter",
+        "x",
+        "linkedin",
+        "youtube",
+        "tiktok",
+        "pinterest",
+        "snapchat",
+        "telegram",
+        "whatsapp",
+        "threads",
+    }
+)
+
 
 def _host_from_origin(origin: str) -> str:
     text = origin.strip()
@@ -78,6 +96,16 @@ def host_matches_brand(page_host: str, brand: str, official_domains: tuple[str, 
             return True
 
     return False
+
+
+def _link_second_level_domains(snapshot: PageSnapshotModel) -> set[str]:
+    """Second-level labels of outbound link hosts (e.g. instagram.com -> instagram)."""
+    slds: set[str] = set()
+    for host in snapshot.link_hosts:
+        sld = _second_level_domain(host)
+        if sld != "":
+            slds.add(sld)
+    return slds
 
 
 def _relevant_brand_hits(snapshot: PageSnapshotModel) -> list[str]:
@@ -211,7 +239,23 @@ def check_brand_page_host_mismatch(
             )
         ]
 
-    secondary_candidates = [brand for brand in all_hits if brand not in primary_hits]
+    # A brand seen only on a secondary surface is benign when it is:
+    #  - a social-login provider or social-media brand (footer/icon links), or
+    #  - linked out to that brand's own domain (e.g. a footer "Instagram" link
+    #    to instagram.com — clearly the site's own profile, not impersonation).
+    # Real impersonation of these brands shows up as a primary hit (title/logo)
+    # and is still scored above. A page that merely names a brand in its footer
+    # without linking to that brand's domain stays a candidate.
+    registry = get_impersonation_registry()
+    benign_secondary = registry.oauth_brands | SOCIAL_LINK_BRANDS
+    linked_brand_slds = _link_second_level_domains(snapshot)
+    secondary_candidates = [
+        brand
+        for brand in all_hits
+        if brand not in primary_hits
+        and brand not in benign_secondary
+        and brand not in linked_brand_slds
+    ]
     secondary_mismatched = _mismatched_brands(snapshot, secondary_candidates)
     if secondary_mismatched:
         brand = secondary_mismatched[0]

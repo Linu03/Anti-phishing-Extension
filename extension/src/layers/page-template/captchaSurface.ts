@@ -27,16 +27,30 @@ const CAPTCHA_TEXT_PHRASES = [
   "complete the check",
 ] as const;
 
-const CLICKFIX_INSTRUCTION_PHRASES = [
+// ClickFix lures always combine a "run/execute" step with a "paste/confirm"
+// step. We require BOTH a run-signal and a paste-signal so isolated generic
+// words (e.g. "clipboard", "press enter") on a normal page don't trigger.
+const CLICKFIX_RUN_PHRASES = [
   "win+r",
+  "win + r",
+  "windows+r",
   "windows + r",
+  "open run",
+  "run dialog",
+  "powershell",
+  "open powershell",
+  "cmd.exe",
+  "press windows",
+  "verification command",
+] as const;
+
+const CLICKFIX_PASTE_PHRASES = [
   "ctrl+v",
   "ctrl + v",
+  "paste",
   "press enter",
-  "verification command",
-  "open run",
-  "powershell",
-  "clipboard",
+  "hit enter",
+  "then enter",
 ] as const;
 
 function hostMatchesRealCaptcha(host: string): boolean {
@@ -71,6 +85,53 @@ function normalizedBodyText(): string {
   } catch {
     return "";
   }
+}
+
+const VERIFICATION_SELECTOR = [
+  '[class*="captcha" i]',
+  '[id*="captcha" i]',
+  '[class*="verify" i]',
+  '[id*="verify" i]',
+  '[class*="verification" i]',
+  '[class*="challenge" i]',
+  '[class*="robot" i]',
+  '[role="dialog"]',
+  '[role="alertdialog"]',
+  ".modal",
+].join(", ");
+
+// Text from the verification surface only: containers that look like a
+// captcha/verification widget plus the area immediately around any checkbox.
+// Real ClickFix lures put their instructions right next to the fake checkbox,
+// so this keeps detection while ignoring incidental wording elsewhere on large
+// legitimate pages (footer, product listings, etc.).
+function verificationSurfaceText(): string {
+  const parts: string[] = [];
+
+  try {
+    const nodes = document.querySelectorAll(VERIFICATION_SELECTOR);
+    const limit = nodes.length < 15 ? nodes.length : 15;
+    for (let i = 0; i < limit; i++) {
+      parts.push(nodes[i].textContent ?? "");
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const boxes = document.querySelectorAll('input[type="checkbox"]');
+    const limit = boxes.length < 10 ? boxes.length : 10;
+    for (let i = 0; i < limit; i++) {
+      const container = boxes[i].closest("form, section, fieldset, label, div");
+      if (container !== null) {
+        parts.push(container.textContent ?? "");
+      }
+    }
+  } catch {
+    // ignore
+  }
+
+  return parts.join(" ").replace(/\s+/g, " ").trim().toLowerCase().slice(0, 6000);
 }
 
 function textHasAnyPhrase(text: string, phrases: readonly string[]): boolean {
@@ -143,6 +204,12 @@ export function emptyCaptchaSurfaceHints(): CaptchaSurfaceHints {
   };
 }
 
+function detectClickfixInstruction(text: string): boolean {
+  const hasRunStep = textHasAnyPhrase(text, CLICKFIX_RUN_PHRASES);
+  const hasPasteStep = textHasAnyPhrase(text, CLICKFIX_PASTE_PHRASES);
+  return hasRunStep && hasPasteStep;
+}
+
 export function collectCaptchaSurfaceHints(
   fieldProfile: FieldProfile,
   forms: FormSnapshot[],
@@ -151,11 +218,12 @@ export function collectCaptchaSurfaceHints(
 ): CaptchaSurfaceHints {
   const hints = emptyCaptchaSurfaceHints();
   const bodyText = normalizedBodyText();
+  const surfaceText = verificationSurfaceText();
 
-  hints.has_captcha_like_text = textHasAnyPhrase(bodyText, CAPTCHA_TEXT_PHRASES);
+  hints.has_captcha_like_text = textHasAnyPhrase(surfaceText, CAPTCHA_TEXT_PHRASES);
   hints.mentions_cloudflare_or_recaptcha =
     bodyText.includes("cloudflare") || bodyText.includes("recaptcha");
-  hints.has_clickfix_instruction_text = textHasAnyPhrase(bodyText, CLICKFIX_INSTRUCTION_PHRASES);
+  hints.has_clickfix_instruction_text = detectClickfixInstruction(surfaceText);
   hints.has_real_captcha_widget = detectRealCaptchaWidget(iframes, scriptOrigins);
 
   if (!hasCredentialLikeForm(fieldProfile, forms)) {

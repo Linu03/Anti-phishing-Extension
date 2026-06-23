@@ -41,6 +41,7 @@ export function buildEmptySnapshot(pageUrl: string, collectionError: string): Pa
     external_resource_ratio: 0,
     brand_hits: [],
     primary_brand_hits: [],
+    link_hosts: [],
     hidden_input_count: 0,
     is_framed: false,
     field_profile: emptyFieldProfile(),

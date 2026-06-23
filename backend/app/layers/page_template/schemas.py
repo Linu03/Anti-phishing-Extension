@@ -89,6 +89,10 @@ class PageSnapshotModel(BaseModel):
         default_factory=list,
         description="Brands matched on title/H1 only (collector sets this).",
     )
+    link_hosts: list[str] = Field(
+        default_factory=list,
+        description="Hostnames of outbound <a href> links (collector sets this).",
+    )
     hidden_input_count: int = 0
     is_framed: bool = False
     field_profile: FieldProfileModel = Field(default_factory=FieldProfileModel)
